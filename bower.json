@@ -1,0 +1,47 @@
+{
+  "name": "widget-video",
+  "version": "0.1.0",
+  "homepage": "https://github.com/Rise-Vision/widget-video",
+  "authors": [
+    "Rise Vision"
+  ],
+  "description": "Rise Vision Video Widget",
+  "moduleType": [
+    "node"
+  ],
+  "keywords": [
+    "risevision",
+    "ui",
+    "widget",
+    "video"
+  ],
+  "license": "GPLv3",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "src/components",
+    "test",
+    "reports"
+  ],
+  "devDependencies": {
+    "angular-mocks": "1.2.18",
+    "q": "1.0.1",
+    "sinon": "~1.10.2"
+  },
+  "dependencies": {
+    "angular": "1.2.18",
+    "angular-bootstrap-slider": "~0.0.6",
+    "angular-route": "1.2.18",
+    "ui-bootstrap": "~0.11.0",
+    "widget-common": "https://github.com/Rise-Vision/widget-common.git",
+    "widget-settings-ui-components": "https://github.com/Rise-Vision/widget-settings-ui-components.git",
+    "widget-settings-ui-core": "https://github.com/Rise-Vision/widget-settings-ui-core.git"
+  },
+  "resolutions": {
+    "angular-translate": "~2.4.2",
+    "angular-translate-loader-static-files": "~2.4.2",
+    "common-style": "~1.1.4",
+    "jquery": "1.11.0"
+  }
+}
