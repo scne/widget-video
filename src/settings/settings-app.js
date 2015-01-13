@@ -1,7 +1,7 @@
 angular.module("risevision.widget.video.settings", [
   "risevision.common.i18n",
   "risevision.widget.common",
-  "ui.bootstrap-slider",
+  "risevision.widget.common.video-setting",
   "risevision.widget.common.widget-button-toolbar",
   "risevision.widget.common.tooltip",
   "risevision.widget.common.background-setting",
