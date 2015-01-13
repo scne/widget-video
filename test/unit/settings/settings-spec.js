@@ -21,7 +21,7 @@ describe("Video Settings", function () {
   });
 
   it("should define videoSettingsController", function (){
-
+    expect($scope.initialView).to.be.truely;
   });
 
 });
