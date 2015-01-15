@@ -34,6 +34,8 @@
     "angular-bootstrap-slider": "~0.0.6",
     "angular-route": "1.2.18",
     "ui-bootstrap": "~0.11.0",
+    "webcomponentsjs": "~0.5.2",
+    "web-component-rise-storage": "https://github.com/Rise-Vision/web-component-rise-storage.git#0.1.1",
     "widget-common": "https://github.com/Rise-Vision/widget-common.git",
     "widget-settings-ui-components": "https://github.com/Rise-Vision/widget-settings-ui-components.git",
     "widget-settings-ui-core": "https://github.com/Rise-Vision/widget-settings-ui-core.git"

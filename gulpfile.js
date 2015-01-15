@@ -91,8 +91,18 @@
       .pipe(gulp.dest("dist/locales"));
   });
 
+  gulp.task("rise-storage", function() {
+    return gulp.src([
+      "src/components/webcomponentsjs/webcomponents*.js",
+      "src/components/web-component-rise-storage/rise-storage.html",
+      "src/components/polymer/**/*.*{html,js}",
+      "src/components/core-ajax/*.*{html,js}"
+    ], {base: "./src/"})
+      .pipe(gulp.dest("dist/"));
+  });
+
   gulp.task("build", function (cb) {
-    runSequence(["clean", "config"], ["source", "fonts", "images", "i18n"], ["unminify"], cb);
+    runSequence(["clean", "config"], ["source", "fonts", "images", "i18n", "rise-storage"], ["unminify"], cb);
   });
 
   gulp.task("html:e2e",
