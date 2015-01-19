@@ -28595,6 +28595,499 @@ angular.module('ui.bootstrap-slider', [])
 	}])
 ;
 
+(function () {
+  "use strict";
+
+  angular.module("risevision.widget.common.color-picker", ["risevision.widget.common"])
+    .directive("colorPicker", ["i18nLoader", function (i18nLoader) {
+      return {
+        restrict: "A",
+        scope: {
+          color: "=",
+          type: "@"
+        },
+        transclude: false,
+        link: function ($scope, elem) {
+          var $elem = $(elem);
+
+          $scope.type = $scope.type ? $scope.type : "background";
+
+          function onChange(color) {
+            $scope.$apply(function() {
+              $scope.color = color.toRgbString();
+            });
+          }
+
+          $scope.$watch("color", function(color) {
+            if (color) {
+              if ($elem.next().hasClass(".sp-replacer.sp-light")) {
+                $elem.spectrum("set", color);
+              }
+              else {
+                i18nLoader.get().then(function () {
+                  var options = {
+                    cancelText: "Cancel",
+                    chooseText: "Apply",
+                    color: color,
+                    preferredFormat: "rgb",
+                    showAlpha: true,
+                    showInput: true,
+                    type: $scope.type,
+                    change: onChange,
+                    showPalette: true,
+                    palette: [
+                      ["#000","#444","#666","#999","#ccc","#eee","#f3f3f3","#fff"],
+                      ["#f00","#f90","#ff0","#0f0","#0ff","#00f","#90f","#f0f"],
+                      ["#f4cccc","#fce5cd","#fff2cc","#d9ead3","#d0e0e3","#cfe2f3","#d9d2e9","#ead1dc"],
+                      ["#ea9999","#f9cb9c","#ffe599","#b6d7a8","#a2c4c9","#9fc5e8","#b4a7d6","#d5a6bd"],
+                      ["#e06666","#f6b26b","#ffd966","#93c47d","#76a5af","#6fa8dc","#8e7cc3","#c27ba0"],
+                      ["#c00","#e69138","#f1c232","#6aa84f","#45818e","#3d85c6","#674ea7","#a64d79"],
+                      ["#900","#b45f06","#bf9000","#38761d","#134f5c","#0b5394","#351c75","#741b47"],
+                      ["#600","#783f04","#7f6000","#274e13","#0c343d","#073763","#20124d","#4c1130"]
+                    ]
+                  };
+
+                  $elem.spectrum(options);
+                });
+              }
+            }
+          });
+        }
+      };
+    }]);
+}());
+
+(function () {
+  "use strict";
+
+  angular.module("risevision.widget.common.widget-button-toolbar", ["risevision.common.i18n"])
+    .directive("widgetButtonToolbar", ["$templateCache", function ($templateCache) {
+      return {
+        restrict: "E",
+        scope: {
+          help: "@",
+          contribute: "@",
+          save: "&",
+          cancel: "&",
+          disableSave: "&"
+        },
+        template: $templateCache.get("_angular/widget-button-toolbar/widget-button-toolbar.html"),
+        link: function ($scope, elem, attrs) {
+          $scope.helpRef = "";
+          $scope.contributeRef = "";
+
+          if (typeof attrs.help !== "undefined" && attrs.help !== "") {
+            $scope.helpRef = attrs.help;
+          }
+
+          if (typeof attrs.contribute !== "undefined" && attrs.contribute !== "") {
+            $scope.contributeRef = attrs.contribute;
+          }
+
+        }
+      };
+    }]);
+}());
+
+(function(module) {
+try { app = angular.module("risevision.widget.common.widget-button-toolbar"); }
+catch(err) { app = angular.module("risevision.widget.common.widget-button-toolbar", []); }
+app.run(["$templateCache", function($templateCache) {
+  "use strict";
+  $templateCache.put("_angular/widget-button-toolbar/widget-button-toolbar.html",
+    "<div class=\"btn-toolbar sticky-buttons\">\n" +
+    "  <button id=\"save\" class=\"btn btn-primary btn-fixed-width\" type=\"button\" ng-click=\"save()\" ng-disabled=\"disableSave()\">\n" +
+    "    <span>{{\"common.save\" | translate}}</span>\n" +
+    "    <i class=\"fa fa-white fa-check fa-lg icon-right\"></i>\n" +
+    "  </button>\n" +
+    "  <button id=\"cancel\" class=\"btn btn-default btn-fixed-width\" type=\"button\" ng-click=\"cancel()\">\n" +
+    "    <span>{{\"common.cancel\" | translate}}</span>\n" +
+    "    <i class=\"fa fa-white fa-times fa-lg icon-right\"></i>\n" +
+    "  </button>\n" +
+    "  <a type=\"button\" class=\"btn btn-rv-help btn-fixed-width\" target=\"_blank\" href={{helpRef}} ng-if=\"helpRef !== ''\">\n" +
+    "    <span>{{\"common.help\" | translate}}</span>\n" +
+    "    <i class=\"fa fa-question-circle fa-lg icon-right\"></i>\n" +
+    "  </a>\n" +
+    "  <a type=\"button\" class=\"btn btn-rv-help btn-fixed-width\" target=\"_blank\" href={{contributeRef}} ng-if=\"contributeRef !== ''\">\n" +
+    "    <span>{{\"common.contribute\" | translate}}</span>\n" +
+    "    <i class=\"fa fa-github fa-lg icon-right\"></i>\n" +
+    "  </a>\n" +
+    "</div>\n" +
+    "");
+}]);
+})();
+
+(function () {
+  "use strict";
+
+  angular.module("risevision.widget.common.tooltip", ["ui.bootstrap"])
+    .directive("rvTooltip", [function () {
+      return {
+        restrict: "A",
+        link: function($scope, element) {
+          element.addClass("fa");
+          element.addClass("fa-question-circle");
+          element.addClass("fa-lg");
+        }
+      };
+    }]);
+}());
+
+if (typeof angular !== "undefined") {
+  angular.module("risevision.widget.common.storage-selector.config", [])
+    .value("STORAGE_MODAL", "http://storage.risevision.com/storage-modal.html#/files/");
+}
+
+(function () {
+
+  "use strict";
+
+  angular.module("risevision.widget.common.storage-selector", [
+    "ui.bootstrap",
+    "risevision.widget.common.storage-selector.config"
+  ])
+  .directive("storageSelector", ["$window", "$templateCache", "$modal", "$sce", "$log", "STORAGE_MODAL",
+    function($window, $templateCache, $modal, $sce, $log, STORAGE_MODAL){
+      return {
+        restrict: "EA",
+        scope : {
+          local: "@",
+          useCtrl: "@",
+          instanceTemplate: "@",
+          companyId : "@"
+        },
+        template: $templateCache.get("storage-selector.html"),
+        link: function (scope) {
+
+          scope.storageUrl = "";
+
+          scope.open = function() {
+            var modalInstance = $modal.open({
+              templateUrl: scope.instanceTemplate || "storage.html",
+              controller: scope.useCtrl || "StorageCtrl",
+              size: "lg",
+              backdrop: true,
+              resolve: {
+                storageUrl: function () {
+                  return {url: $sce.trustAsResourceUrl(scope.storageUrl)};
+                }
+              }
+            });
+
+            modalInstance.result.then(function (files) {
+              // emit an event with name "files", passing the array of files selected from storage
+              scope.$emit("picked", files);
+
+            }, function () {
+              $log.info("Modal dismissed at: " + new Date());
+            });
+
+          };
+
+          if (scope.local){
+            scope.storageUrl = STORAGE_MODAL + "local";
+          } else {
+            scope.$watch("companyId", function (companyId) {
+              if (companyId) {
+                scope.storageUrl = STORAGE_MODAL + companyId;
+              }
+            });
+          }
+        }
+      };
+   }
+  ]);
+})();
+
+
+
+angular.module("risevision.widget.common.storage-selector")
+  .controller("StorageCtrl", ["$scope", "$modalInstance", "storageUrl", "$window", "$log",
+    function($scope, $modalInstance, storageUrl, $window/*, $log*/){
+
+    $scope.storageUrl = storageUrl;
+
+    $window.addEventListener("message", function (event) {
+      if (event.origin !== "http://storage.risevision.com") { return; }
+
+      if (Array.isArray(event.data)) {
+        $modalInstance.close(event.data);
+      } else if (typeof event.data === "string") {
+        if (event.data === "close") {
+          $modalInstance.dismiss("cancel");
+        }
+      }
+    });
+
+  }]);
+
+(function(module) {
+try { app = angular.module("risevision.widget.common.storage-selector"); }
+catch(err) { app = angular.module("risevision.widget.common.storage-selector", []); }
+app.run(["$templateCache", function($templateCache) {
+  "use strict";
+  $templateCache.put("storage-selector.html",
+    "<button class=\"btn btn-widget-icon-storage\" ng-click=\"open()\" type=\"button\" />\n" +
+    "<script type=\"text/ng-template\" id=\"storage.html\">\n" +
+    "        <iframe class=\"modal-dialog\" scrolling=\"no\" marginwidth=\"0\" src=\"{{ storageUrl.url }}\"></iframe>\n" +
+    "</script>\n" +
+    "");
+}]);
+})();
+
+(function () {
+  "use strict";
+
+  angular.module("risevision.widget.common.url-field",
+    ["risevision.common.i18n",
+    "risevision.widget.common.tooltip",
+    "risevision.widget.common.storage-selector"])
+
+    .directive("urlField", ["$templateCache", "$log", function ($templateCache, $log) {
+      return {
+        restrict: "E",
+        require: "?ngModel",
+        scope: {
+          url: "=",
+          hideLabel: "@",
+          hideStorage: "@",
+          companyId: "@"
+        },
+        template: $templateCache.get("_angular/url-field/url-field.html"),
+        link: function (scope, element, attrs, ctrl) {
+
+          function testUrl(value) {
+            var urlRegExp;
+
+            /*
+             Discussion
+             http://stackoverflow.com/questions/37684/how-to-replace-plain-urls-with-links#21925491
+
+             Using
+             https://gist.github.com/dperini/729294
+             Reasoning
+             http://mathiasbynens.be/demo/url-regex */
+
+            /* jshint ignore:start */
+            urlRegExp = /^(?:(?:https?|ftp):\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]+-?)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]+-?)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:\/[^\s]*)?$/i;
+            /* jshint ignore:end */
+
+            // Add http:// if no protocol parameter exists
+            if (value.indexOf("://") === -1) {
+              value = "http://" + value;
+            }
+
+            return urlRegExp.test(value);
+          }
+
+          // By default enforce validation
+          scope.doValidation = true;
+          // A flag to set if the user turned off validation
+          scope.forcedValid = false;
+          // Validation state
+          scope.valid = true;
+
+          if (!scope.hideStorage) {
+            scope.$on("picked", function (event, data) {
+              scope.url = data[0];
+            });
+          }
+
+          scope.$watch("url", function (url) {
+            if (url && scope.doValidation) {
+              scope.valid = testUrl(scope.url);
+            }
+          });
+
+          scope.$watch("valid", function (valid) {
+            if (ctrl) {
+              $log.info("Calling $setValidity() on parent controller");
+              ctrl.$setValidity("valid", valid);
+            }
+          });
+
+          scope.$watch("doValidation", function (doValidation) {
+            if(typeof scope.url !== "undefined") {
+              if (doValidation) {
+                scope.forcedValid = false;
+                scope.valid = testUrl(scope.url);
+              } else {
+                scope.forcedValid = true;
+                scope.valid = true;
+              }
+            }
+          });
+
+        }
+      };
+    }]);
+}());
+
+(function(module) {
+try { app = angular.module("risevision.widget.common.url-field"); }
+catch(err) { app = angular.module("risevision.widget.common.url-field", []); }
+app.run(["$templateCache", function($templateCache) {
+  "use strict";
+  $templateCache.put("_angular/url-field/url-field.html",
+    "<div class=\"form-group\" >\n" +
+    "  <label for=\"url\" ng-if=\"!hideLabel\">{{ \"url.label\" | translate }}</label>\n" +
+    "  <div ng-class=\"{'input-group':!hideStorage}\">\n" +
+    "    <input id=\"url\" name=\"url\" type=\"text\" ng-model=\"url\" class=\"form-control\" placeholder=\"http://\">\n" +
+    "    <span class=\"input-url-addon\" ng-if=\"!hideStorage\"><storage-selector company-id=\"{{companyId}}\"></storage-selector></span>\n" +
+    "  </div>\n" +
+    "  <p ng-if=\"!valid\" class=\"help-block\">{{ \"url.invalid\" | translate }}</p>\n" +
+    "  <div class=\"checkbox\" ng-show=\"forcedValid || !valid\">\n" +
+    "    <label>\n" +
+    "      <input name=\"validate-url\" ng-click=\"doValidation = !doValidation\" type=\"checkbox\"\n" +
+    "             value=\"validate-url\" checked=\"checked\"> {{\"url.validate.label\" | translate}}\n" +
+    "    </label>\n" +
+    "    <span popover=\"{{'url.validate.tooltip' | translate}}\" popover-trigger=\"click\"\n" +
+    "          popover-placement=\"top\" rv-tooltip></span>\n" +
+    "  </div>\n" +
+    "</div>\n" +
+    "");
+}]);
+})();
+
+(function () {
+  "use strict";
+
+  angular.module("risevision.widget.common.background-setting",
+    ["risevision.common.i18n", "risevision.widget.common.color-picker"])
+    .directive("backgroundSetting", ["$templateCache", function ($templateCache) {
+      return {
+        restrict: "E",
+        scope: {
+          background: "="
+        },
+        template: $templateCache.get("_angular/background-setting/background-setting.html"),
+        link: function ($scope) {
+          $scope.defaultSetting = {
+            color: "transparent"
+          };
+
+          $scope.defaults = function(obj) {
+            if (obj) {
+              for (var i = 1, length = arguments.length; i < length; i++) {
+                var source = arguments[i];
+
+                for (var prop in source) {
+                  if (obj[prop] === void 0) {
+                    obj[prop] = source[prop];
+                  }
+                }
+              }
+            }
+            return obj;
+          };
+
+          $scope.$watch("background", function(background) {
+            $scope.defaults(background, $scope.defaultSetting);
+          });
+        }
+      };
+    }]);
+}());
+
+(function(module) {
+try { app = angular.module("risevision.widget.common.background-setting"); }
+catch(err) { app = angular.module("risevision.widget.common.background-setting", []); }
+app.run(["$templateCache", function($templateCache) {
+  "use strict";
+  $templateCache.put("_angular/background-setting/background-setting.html",
+    "<div class=\"section\">\n" +
+    "  <h5>{{\"background.heading\" | translate}}</h5>\n" +
+    "  <div class=\"form-group\">\n" +
+    "    <label>{{\"background.color.label\" | translate}}  &nbsp;</label>\n" +
+    "    <div>\n" +
+    "      <input color-picker color=\"background.color\" type=\"background\">\n" +
+    "    </div>\n" +
+    "  </div>\n" +
+    "</div>\n" +
+    "");
+}]);
+})();
+
+(function () {
+  "use strict";
+
+  angular.module("risevision.widget.common.video-setting", [
+    "risevision.common.i18n",
+    "ui.bootstrap-slider"
+  ])
+    .directive("videoSetting", ["$templateCache", "$log", function ($templateCache/*, $log*/) {
+      return {
+        restrict: "E",
+        scope: {
+          video: "="
+        },
+        template: $templateCache.get("_angular/video-setting/video-setting.html"),
+        link: function ($scope) {
+          $scope.defaultSetting = {
+            autoplay: true,
+            volume: 50,
+            loop: true,
+            autohide: true
+          };
+
+          $scope.defaults = function(obj) {
+            if (obj) {
+              for (var i = 1, length = arguments.length; i < length; i++) {
+                var source = arguments[i];
+
+                for (var prop in source) {
+                  if (obj[prop] === void 0) {
+                    obj[prop] = source[prop];
+                  }
+                }
+              }
+            }
+            return obj;
+          };
+
+          $scope.$watch("video", function(video) {
+            $scope.defaults(video, $scope.defaultSetting);
+          });
+
+        }
+      };
+    }]);
+}());
+
+(function(module) {
+try { app = angular.module("risevision.widget.common.video-setting"); }
+catch(err) { app = angular.module("risevision.widget.common.video-setting", []); }
+app.run(["$templateCache", function($templateCache) {
+  "use strict";
+  $templateCache.put("_angular/video-setting/video-setting.html",
+    "<div class=\"section\">\n" +
+    "  <h5>{{\"video.heading\" | translate}}</h5>\n" +
+    "  <div class=\"checkbox\">\n" +
+    "    <label>\n" +
+    "      <input name=\"video-autoplay\" type=\"checkbox\" ng-model=\"video.autoplay\"> {{\"video.autoplay.label\" | translate}}\n" +
+    "    </label>\n" +
+    "  </div>\n" +
+    "  <div class=\"form-group\">\n" +
+    "    <label>{{\"video.volume.label\" | translate}}</label>\n" +
+    "    <div>\n" +
+    "      <slider orientation=\"horizontal\" handle=\"round\" ng-model=\"video.volume\" min=\"0\" step=\"1\" max=\"100\"></slider>\n" +
+    "    </div>\n" +
+    "  </div>\n" +
+    "  <div class=\"checkbox\">\n" +
+    "    <label>\n" +
+    "      <input name=\"video-loop\" type=\"checkbox\" ng-model=\"video.loop\"> {{\"video.loop.label\" | translate}}\n" +
+    "    </label>\n" +
+    "  </div>\n" +
+    "  <div class=\"checkbox\">\n" +
+    "    <label>\n" +
+    "      <input name=\"video-autohide\" type=\"checkbox\" ng-model=\"video.autohide\"> {{\"video.autohide.label\" | translate}}\n" +
+    "    </label>\n" +
+    "  </div>\n" +
+    "</div>\n" +
+    "");
+}]);
+})();
+
 /* global config: true */
 /* exported config */
 if (typeof config === "undefined") {
@@ -28606,6 +29099,9 @@ if (typeof config === "undefined") {
     angular.module("risevision.common.i18n.config", [])
       .constant("LOCALES_PREFIX", "components/rv-common-i18n/dist/locales/translation_")
       .constant("LOCALES_SUFIX", ".json");
+
+    angular.module("risevision.widget.common.storage-selector.config")
+      .value("STORAGE_MODAL", "http://storage.risevision.com/~rvi/storage-client-rva-test/storage-modal.html#/files/");
   }
 }
 
@@ -28967,496 +29463,3 @@ angular.module("risevision.widget.video.settings")
       background: {}
     }
   });
-
-(function () {
-  "use strict";
-
-  angular.module("risevision.widget.common.color-picker", ["risevision.widget.common"])
-    .directive("colorPicker", ["i18nLoader", function (i18nLoader) {
-      return {
-        restrict: "A",
-        scope: {
-          color: "=",
-          type: "@"
-        },
-        transclude: false,
-        link: function ($scope, elem) {
-          var $elem = $(elem);
-
-          $scope.type = $scope.type ? $scope.type : "background";
-
-          function onChange(color) {
-            $scope.$apply(function() {
-              $scope.color = color.toRgbString();
-            });
-          }
-
-          $scope.$watch("color", function(color) {
-            if (color) {
-              if ($elem.next().hasClass(".sp-replacer.sp-light")) {
-                $elem.spectrum("set", color);
-              }
-              else {
-                i18nLoader.get().then(function () {
-                  var options = {
-                    cancelText: "Cancel",
-                    chooseText: "Apply",
-                    color: color,
-                    preferredFormat: "rgb",
-                    showAlpha: true,
-                    showInput: true,
-                    type: $scope.type,
-                    change: onChange,
-                    showPalette: true,
-                    palette: [
-                      ["#000","#444","#666","#999","#ccc","#eee","#f3f3f3","#fff"],
-                      ["#f00","#f90","#ff0","#0f0","#0ff","#00f","#90f","#f0f"],
-                      ["#f4cccc","#fce5cd","#fff2cc","#d9ead3","#d0e0e3","#cfe2f3","#d9d2e9","#ead1dc"],
-                      ["#ea9999","#f9cb9c","#ffe599","#b6d7a8","#a2c4c9","#9fc5e8","#b4a7d6","#d5a6bd"],
-                      ["#e06666","#f6b26b","#ffd966","#93c47d","#76a5af","#6fa8dc","#8e7cc3","#c27ba0"],
-                      ["#c00","#e69138","#f1c232","#6aa84f","#45818e","#3d85c6","#674ea7","#a64d79"],
-                      ["#900","#b45f06","#bf9000","#38761d","#134f5c","#0b5394","#351c75","#741b47"],
-                      ["#600","#783f04","#7f6000","#274e13","#0c343d","#073763","#20124d","#4c1130"]
-                    ]
-                  };
-
-                  $elem.spectrum(options);
-                });
-              }
-            }
-          });
-        }
-      };
-    }]);
-}());
-
-(function () {
-  "use strict";
-
-  angular.module("risevision.widget.common.widget-button-toolbar", ["risevision.common.i18n"])
-    .directive("widgetButtonToolbar", ["$templateCache", function ($templateCache) {
-      return {
-        restrict: "E",
-        scope: {
-          help: "@",
-          contribute: "@",
-          save: "&",
-          cancel: "&",
-          disableSave: "&"
-        },
-        template: $templateCache.get("_angular/widget-button-toolbar/widget-button-toolbar.html"),
-        link: function ($scope, elem, attrs) {
-          $scope.helpRef = "";
-          $scope.contributeRef = "";
-
-          if (typeof attrs.help !== "undefined" && attrs.help !== "") {
-            $scope.helpRef = attrs.help;
-          }
-
-          if (typeof attrs.contribute !== "undefined" && attrs.contribute !== "") {
-            $scope.contributeRef = attrs.contribute;
-          }
-
-        }
-      };
-    }]);
-}());
-
-(function(module) {
-try { app = angular.module("risevision.widget.common.widget-button-toolbar"); }
-catch(err) { app = angular.module("risevision.widget.common.widget-button-toolbar", []); }
-app.run(["$templateCache", function($templateCache) {
-  "use strict";
-  $templateCache.put("_angular/widget-button-toolbar/widget-button-toolbar.html",
-    "<div class=\"btn-toolbar sticky-buttons\">\n" +
-    "  <button id=\"save\" class=\"btn btn-primary btn-fixed-width\" type=\"button\" ng-click=\"save()\" ng-disabled=\"disableSave()\">\n" +
-    "    <span>{{\"common.save\" | translate}}</span>\n" +
-    "    <i class=\"fa fa-white fa-check fa-lg icon-right\"></i>\n" +
-    "  </button>\n" +
-    "  <button id=\"cancel\" class=\"btn btn-default btn-fixed-width\" type=\"button\" ng-click=\"cancel()\">\n" +
-    "    <span>{{\"common.cancel\" | translate}}</span>\n" +
-    "    <i class=\"fa fa-white fa-times fa-lg icon-right\"></i>\n" +
-    "  </button>\n" +
-    "  <a type=\"button\" class=\"btn btn-rv-help btn-fixed-width\" target=\"_blank\" href={{helpRef}} ng-if=\"helpRef !== ''\">\n" +
-    "    <span>{{\"common.help\" | translate}}</span>\n" +
-    "    <i class=\"fa fa-question-circle fa-lg icon-right\"></i>\n" +
-    "  </a>\n" +
-    "  <a type=\"button\" class=\"btn btn-rv-help btn-fixed-width\" target=\"_blank\" href={{contributeRef}} ng-if=\"contributeRef !== ''\">\n" +
-    "    <span>{{\"common.contribute\" | translate}}</span>\n" +
-    "    <i class=\"fa fa-github fa-lg icon-right\"></i>\n" +
-    "  </a>\n" +
-    "</div>\n" +
-    "");
-}]);
-})();
-
-(function () {
-  "use strict";
-
-  angular.module("risevision.widget.common.tooltip", ["ui.bootstrap"])
-    .directive("rvTooltip", [function () {
-      return {
-        restrict: "A",
-        link: function($scope, element) {
-          element.addClass("fa");
-          element.addClass("fa-question-circle");
-          element.addClass("fa-lg");
-        }
-      };
-    }]);
-}());
-
-/* global CONFIG: true */
-/* exported CONFIG */
-if (typeof CONFIG === "undefined") {
-  var CONFIG = {
-    // variables go here
-  };
-}
-
-(function () {
-
-  "use strict";
-
-  angular.module("risevision.widget.common.storage-selector", ["ui.bootstrap"])
-  .directive("storageSelector", ["$window", "$templateCache", "$modal", "$sce", "$log",
-    function($window, $templateCache, $modal, $sce, $log){
-      return {
-        restrict: "EA",
-        scope : {
-          local: "@",
-          useCtrl: "@",
-          instanceTemplate: "@",
-          companyId : "@"
-        },
-        template: $templateCache.get("storage-selector.html"),
-        link: function (scope) {
-
-          scope.storageUrl = "";
-
-          scope.open = function() {
-            var modalInstance = $modal.open({
-              templateUrl: scope.instanceTemplate || "storage.html",
-              controller: scope.useCtrl || "StorageCtrl",
-              size: "lg",
-              backdrop: true,
-              resolve: {
-                storageUrl: function () {
-                  return {url: $sce.trustAsResourceUrl(scope.storageUrl)};
-                }
-              }
-            });
-
-            modalInstance.result.then(function (files) {
-              // emit an event with name "files", passing the array of files selected from storage
-              scope.$emit("picked", files);
-
-            }, function () {
-              $log.info("Modal dismissed at: " + new Date());
-            });
-
-          };
-
-          if (scope.local){
-            scope.storageUrl = "http://storage.risevision.com/storage-modal.html#/files/local";
-          } else {
-            scope.$watch("companyId", function (companyId) {
-              if (companyId) {
-                scope.storageUrl = "http://storage.risevision.com/storage-modal.html#/files/" + companyId;
-              }
-            });
-          }
-        }
-      };
-   }
-  ]);
-})();
-
-
-
-angular.module("risevision.widget.common.storage-selector")
-  .controller("StorageCtrl", ["$scope", "$modalInstance", "storageUrl", "$window", "$log",
-    function($scope, $modalInstance, storageUrl, $window/*, $log*/){
-
-    $scope.storageUrl = storageUrl;
-
-    $window.addEventListener("message", function (event) {
-      if (event.origin !== "http://storage.risevision.com") { return; }
-
-      if (Array.isArray(event.data)) {
-        $modalInstance.close(event.data);
-      } else if (typeof event.data === "string") {
-        if (event.data === "close") {
-          $modalInstance.dismiss("cancel");
-        }
-      }
-    });
-
-  }]);
-
-(function(module) {
-try { app = angular.module("risevision.widget.common.storage-selector"); }
-catch(err) { app = angular.module("risevision.widget.common.storage-selector", []); }
-app.run(["$templateCache", function($templateCache) {
-  "use strict";
-  $templateCache.put("storage-selector.html",
-    "<button class=\"btn btn-widget-icon-storage\" ng-click=\"open()\" type=\"button\" />\n" +
-    "<script type=\"text/ng-template\" id=\"storage.html\">\n" +
-    "        <iframe class=\"modal-dialog\" scrolling=\"no\" marginwidth=\"0\" src=\"{{ storageUrl.url }}\"></iframe>\n" +
-    "</script>\n" +
-    "");
-}]);
-})();
-
-(function () {
-  "use strict";
-
-  angular.module("risevision.widget.common.url-field",
-    ["risevision.common.i18n",
-    "risevision.widget.common.tooltip",
-    "risevision.widget.common.storage-selector"])
-
-    .directive("urlField", ["$templateCache", "$log", function ($templateCache, $log) {
-      return {
-        restrict: "E",
-        require: "?ngModel",
-        scope: {
-          url: "=",
-          hideLabel: "@",
-          hideStorage: "@",
-          companyId: "@"
-        },
-        template: $templateCache.get("_angular/url-field/url-field.html"),
-        link: function (scope, element, attrs, ctrl) {
-
-          function testUrl(value) {
-            var urlRegExp;
-
-            /*
-             Discussion
-             http://stackoverflow.com/questions/37684/how-to-replace-plain-urls-with-links#21925491
-
-             Using
-             https://gist.github.com/dperini/729294
-             Reasoning
-             http://mathiasbynens.be/demo/url-regex */
-
-            /* jshint ignore:start */
-            urlRegExp = /^(?:(?:https?|ftp):\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]+-?)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]+-?)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:\/[^\s]*)?$/i;
-            /* jshint ignore:end */
-
-            // Add http:// if no protocol parameter exists
-            if (value.indexOf("://") === -1) {
-              value = "http://" + value;
-            }
-
-            return urlRegExp.test(value);
-          }
-
-          // By default enforce validation
-          scope.doValidation = true;
-          // A flag to set if the user turned off validation
-          scope.forcedValid = false;
-          // Validation state
-          scope.valid = true;
-
-          if (!scope.hideStorage) {
-            scope.$on("picked", function (event, data) {
-              scope.url = data[0];
-            });
-          }
-
-          scope.$watch("url", function (url) {
-            if (url && scope.doValidation) {
-              scope.valid = testUrl(scope.url);
-            }
-          });
-
-          scope.$watch("valid", function (valid) {
-            if (ctrl) {
-              $log.info("Calling $setValidity() on parent controller");
-              ctrl.$setValidity("valid", valid);
-            }
-          });
-
-          scope.$watch("doValidation", function (doValidation) {
-            if(typeof scope.url !== "undefined") {
-              if (doValidation) {
-                scope.forcedValid = false;
-                scope.valid = testUrl(scope.url);
-              } else {
-                scope.forcedValid = true;
-                scope.valid = true;
-              }
-            }
-          });
-
-        }
-      };
-    }]);
-}());
-
-(function(module) {
-try { app = angular.module("risevision.widget.common.url-field"); }
-catch(err) { app = angular.module("risevision.widget.common.url-field", []); }
-app.run(["$templateCache", function($templateCache) {
-  "use strict";
-  $templateCache.put("_angular/url-field/url-field.html",
-    "<div class=\"form-group\" >\n" +
-    "  <label for=\"url\" ng-if=\"!hideLabel\">{{ \"url.label\" | translate }}</label>\n" +
-    "  <div ng-class=\"{'input-group':!hideStorage}\">\n" +
-    "    <input id=\"url\" name=\"url\" type=\"text\" ng-model=\"url\" class=\"form-control\" placeholder=\"http://\">\n" +
-    "    <span class=\"input-url-addon\" ng-if=\"!hideStorage\"><storage-selector company-id=\"{{companyId}}\"></storage-selector></span>\n" +
-    "  </div>\n" +
-    "  <p ng-if=\"!valid\" class=\"help-block\">{{ \"url.invalid\" | translate }}</p>\n" +
-    "  <div class=\"checkbox\" ng-show=\"forcedValid || !valid\">\n" +
-    "    <label>\n" +
-    "      <input name=\"validate-url\" ng-click=\"doValidation = !doValidation\" type=\"checkbox\"\n" +
-    "             value=\"validate-url\" checked=\"checked\"> {{\"url.validate.label\" | translate}}\n" +
-    "    </label>\n" +
-    "    <span popover=\"{{'url.validate.tooltip' | translate}}\" popover-trigger=\"click\"\n" +
-    "          popover-placement=\"top\" rv-tooltip></span>\n" +
-    "  </div>\n" +
-    "</div>\n" +
-    "");
-}]);
-})();
-
-(function () {
-  "use strict";
-
-  angular.module("risevision.widget.common.background-setting",
-    ["risevision.common.i18n", "risevision.widget.common.color-picker"])
-    .directive("backgroundSetting", ["$templateCache", function ($templateCache) {
-      return {
-        restrict: "E",
-        scope: {
-          background: "="
-        },
-        template: $templateCache.get("_angular/background-setting/background-setting.html"),
-        link: function ($scope) {
-          $scope.defaultSetting = {
-            color: "transparent"
-          };
-
-          $scope.defaults = function(obj) {
-            if (obj) {
-              for (var i = 1, length = arguments.length; i < length; i++) {
-                var source = arguments[i];
-
-                for (var prop in source) {
-                  if (obj[prop] === void 0) {
-                    obj[prop] = source[prop];
-                  }
-                }
-              }
-            }
-            return obj;
-          };
-
-          $scope.$watch("background", function(background) {
-            $scope.defaults(background, $scope.defaultSetting);
-          });
-        }
-      };
-    }]);
-}());
-
-(function(module) {
-try { app = angular.module("risevision.widget.common.background-setting"); }
-catch(err) { app = angular.module("risevision.widget.common.background-setting", []); }
-app.run(["$templateCache", function($templateCache) {
-  "use strict";
-  $templateCache.put("_angular/background-setting/background-setting.html",
-    "<div class=\"section\">\n" +
-    "  <h5>{{\"background.heading\" | translate}}</h5>\n" +
-    "  <div class=\"form-group\">\n" +
-    "    <label>{{\"background.color.label\" | translate}}  &nbsp;</label>\n" +
-    "    <div>\n" +
-    "      <input color-picker color=\"background.color\" type=\"background\">\n" +
-    "    </div>\n" +
-    "  </div>\n" +
-    "</div>\n" +
-    "");
-}]);
-})();
-
-(function () {
-  "use strict";
-
-  angular.module("risevision.widget.common.video-setting", [
-    "risevision.common.i18n",
-    "ui.bootstrap-slider"
-  ])
-    .directive("videoSetting", ["$templateCache", "$log", function ($templateCache/*, $log*/) {
-      return {
-        restrict: "E",
-        scope: {
-          video: "="
-        },
-        template: $templateCache.get("_angular/video-setting/video-setting.html"),
-        link: function ($scope) {
-          $scope.defaultSetting = {
-            autoplay: true,
-            volume: 50,
-            loop: true,
-            autohide: true
-          };
-
-          $scope.defaults = function(obj) {
-            if (obj) {
-              for (var i = 1, length = arguments.length; i < length; i++) {
-                var source = arguments[i];
-
-                for (var prop in source) {
-                  if (obj[prop] === void 0) {
-                    obj[prop] = source[prop];
-                  }
-                }
-              }
-            }
-            return obj;
-          };
-
-          $scope.$watch("video", function(video) {
-            $scope.defaults(video, $scope.defaultSetting);
-          });
-
-        }
-      };
-    }]);
-}());
-
-(function(module) {
-try { app = angular.module("risevision.widget.common.video-setting"); }
-catch(err) { app = angular.module("risevision.widget.common.video-setting", []); }
-app.run(["$templateCache", function($templateCache) {
-  "use strict";
-  $templateCache.put("_angular/video-setting/video-setting.html",
-    "<div class=\"section\">\n" +
-    "  <h5>{{\"video.heading\" | translate}}</h5>\n" +
-    "  <div class=\"checkbox\">\n" +
-    "    <label>\n" +
-    "      <input name=\"video-autoplay\" type=\"checkbox\" ng-model=\"video.autoplay\"> {{\"video.autoplay.label\" | translate}}\n" +
-    "    </label>\n" +
-    "  </div>\n" +
-    "  <div class=\"form-group\">\n" +
-    "    <label>{{\"video.volume.label\" | translate}}</label>\n" +
-    "    <div>\n" +
-    "      <slider orientation=\"horizontal\" handle=\"round\" ng-model=\"video.volume\" min=\"0\" step=\"1\" max=\"100\"></slider>\n" +
-    "    </div>\n" +
-    "  </div>\n" +
-    "  <div class=\"checkbox\">\n" +
-    "    <label>\n" +
-    "      <input name=\"video-loop\" type=\"checkbox\" ng-model=\"video.loop\"> {{\"video.loop.label\" | translate}}\n" +
-    "    </label>\n" +
-    "  </div>\n" +
-    "  <div class=\"checkbox\">\n" +
-    "    <label>\n" +
-    "      <input name=\"video-autohide\" type=\"checkbox\" ng-model=\"video.autohide\"> {{\"video.autohide.label\" | translate}}\n" +
-    "    </label>\n" +
-    "  </div>\n" +
-    "</div>\n" +
-    "");
-}]);
-})();
