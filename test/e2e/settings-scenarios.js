@@ -78,6 +78,7 @@
         params: {},
         additionalParams: {
           "url": testVideoUrl,
+          "storage": {},
           "video": {
             "autoplay":false,
             "volume":50,
