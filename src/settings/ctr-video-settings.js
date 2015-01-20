@@ -1,6 +1,6 @@
 angular.module("risevision.widget.video.settings")
-  .controller("videoSettingsController", ["$scope", "$log",
-    function ($scope/*, $log*/) {
+  .controller("videoSettingsController", ["$scope", "$log", "commonSettings",
+    function ($scope, $log, commonSettings) {
 
       // Using this to apply an initial one time error message regarding url being required
       $scope.initialView = true;
@@ -35,6 +35,12 @@ angular.module("risevision.widget.video.settings")
           $scope.invalidFormat = (!isWebM && $scope.settingsForm.urlField.$valid) ? true : false;
           // prevent or allow saving the form based on if a webm file is targeted
           $scope.settingsForm.$setValidity("validFormat", isWebM);
+
+          if ($scope.settingsForm.urlField.$valid && isWebM ) {
+            $scope.settings.additionalParams.storage = commonSettings.getStorageUrlData(url);
+          } else {
+            $scope.settings.additionalParams.storage = {};
+          }
         }
       });
 
@@ -43,6 +49,7 @@ angular.module("risevision.widget.video.settings")
     params: {},
     additionalParams: {
       url: "",
+      storage: {},
       video: {},
       background: {}
     }
