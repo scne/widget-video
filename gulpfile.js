@@ -168,6 +168,7 @@
       "src/components/bootstrap-form-components/dist/js/**/*.js",
       "src/components/seiyria-bootstrap-slider/dist/bootstrap-slider.min.js",
       "src/components/angular-bootstrap-slider/slider.js",
+      "src/components/rv-angular-bootstrap-colorpicker/js/bootstrap-colorpicker-module.js",
       "src/config/test.js",
       "src/settings/settings-app.js",
       "src/settings/**/*.js",

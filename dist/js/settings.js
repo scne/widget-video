@@ -28595,6 +28595,541 @@ angular.module('ui.bootstrap-slider', [])
 	}])
 ;
 
+'use strict';
+
+angular.module('colorpicker.module', [])
+    .factory('Helper', function () {
+      return {
+        closestSlider: function (elem) {
+          var matchesSelector = elem.matches || elem.webkitMatchesSelector || elem.mozMatchesSelector || elem.msMatchesSelector;
+          if (matchesSelector.bind(elem)('I')) {
+            return elem.parentNode;
+          }
+          return elem;
+        },
+        getOffset: function (elem, fixedPosition) {
+          var
+              x = 0,
+              y = 0,
+              scrollX = 0,
+              scrollY = 0;
+          while (elem && !isNaN(elem.offsetLeft) && !isNaN(elem.offsetTop)) {
+            x += elem.offsetLeft;
+            y += elem.offsetTop;
+            if (!fixedPosition && elem.tagName === 'BODY') {
+              scrollX += document.documentElement.scrollLeft || elem.scrollLeft;
+              scrollY += document.documentElement.scrollTop || elem.scrollTop;
+            } else {
+              scrollX += elem.scrollLeft;
+              scrollY += elem.scrollTop;
+            }
+            elem = elem.offsetParent;
+          }
+          return {
+            top: y,
+            left: x,
+            scrollX: scrollX,
+            scrollY: scrollY
+          };
+        },
+        // a set of RE's that can match strings and generate color tuples. https://github.com/jquery/jquery-color/
+        stringParsers: [
+          {
+            re: /rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*(\d+(?:\.\d+)?)\s*)?\)/,
+            parse: function (execResult) {
+              return [
+                execResult[1],
+                execResult[2],
+                execResult[3],
+                execResult[4]
+              ];
+            }
+          },
+          {
+            re: /rgba?\(\s*(\d+(?:\.\d+)?)\%\s*,\s*(\d+(?:\.\d+)?)\%\s*,\s*(\d+(?:\.\d+)?)\%\s*(?:,\s*(\d+(?:\.\d+)?)\s*)?\)/,
+            parse: function (execResult) {
+              return [
+                2.55 * execResult[1],
+                2.55 * execResult[2],
+                2.55 * execResult[3],
+                execResult[4]
+              ];
+            }
+          },
+          {
+            re: /#([a-fA-F0-9]{2})([a-fA-F0-9]{2})([a-fA-F0-9]{2})/,
+            parse: function (execResult) {
+              return [
+                parseInt(execResult[1], 16),
+                parseInt(execResult[2], 16),
+                parseInt(execResult[3], 16)
+              ];
+            }
+          },
+          {
+            re: /#([a-fA-F0-9])([a-fA-F0-9])([a-fA-F0-9])/,
+            parse: function (execResult) {
+              return [
+                parseInt(execResult[1] + execResult[1], 16),
+                parseInt(execResult[2] + execResult[2], 16),
+                parseInt(execResult[3] + execResult[3], 16)
+              ];
+            }
+          }
+        ]
+      };
+    })
+    .factory('Color', ['Helper', function (Helper) {
+      return {
+        value: {
+          h: 1,
+          s: 1,
+          b: 1,
+          a: 1
+        },
+        // translate a format from Color object to a string
+        'rgb': function () {
+          var rgb = this.toRGB();
+          return 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
+        },
+        'rgba': function () {
+          var rgb = this.toRGB();
+          return 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + rgb.a + ')';
+        },
+        'hex': function () {
+          return  this.toHex();
+        },
+
+        // HSBtoRGB from RaphaelJS
+        RGBtoHSB: function (r, g, b, a) {
+          r /= 255;
+          g /= 255;
+          b /= 255;
+
+          var H, S, V, C;
+          V = Math.max(r, g, b);
+          C = V - Math.min(r, g, b);
+          H = (C === 0 ? null :
+              V === r ? (g - b) / C :
+                  V === g ? (b - r) / C + 2 :
+                      (r - g) / C + 4
+              );
+          H = ((H + 360) % 6) * 60 / 360;
+          S = C === 0 ? 0 : C / V;
+          return {h: H || 1, s: S, b: V, a: a || 1};
+        },
+
+        //parse a string to HSB
+        setColor: function (val) {
+          val = val.toLowerCase();
+          for (var key in Helper.stringParsers) {
+            if (Helper.stringParsers.hasOwnProperty(key)) {
+              var parser = Helper.stringParsers[key];
+              var match = parser.re.exec(val),
+                  values = match && parser.parse(match);
+              if (values) {
+                this.value = this.RGBtoHSB.apply(null, values);
+                return false;
+              }
+            }
+          }
+        },
+
+        setHue: function (h) {
+          this.value.h = 1 - h;
+        },
+
+        setSaturation: function (s) {
+          this.value.s = s;
+        },
+
+        setLightness: function (b) {
+          this.value.b = 1 - b;
+        },
+
+        setAlpha: function (a) {
+          this.value.a = parseInt((1 - a) * 100, 10) / 100;
+        },
+
+        // HSBtoRGB from RaphaelJS
+        // https://github.com/DmitryBaranovskiy/raphael/
+        toRGB: function (h, s, b, a) {
+          if (!h) {
+            h = this.value.h;
+            s = this.value.s;
+            b = this.value.b;
+          }
+          h *= 360;
+          var R, G, B, X, C;
+          h = (h % 360) / 60;
+          C = b * s;
+          X = C * (1 - Math.abs(h % 2 - 1));
+          R = G = B = b - C;
+
+          h = ~~h;
+          R += [C, X, 0, 0, X, C][h];
+          G += [X, C, C, X, 0, 0][h];
+          B += [0, 0, X, C, C, X][h];
+          return {
+            r: Math.round(R * 255),
+            g: Math.round(G * 255),
+            b: Math.round(B * 255),
+            a: a || this.value.a
+          };
+        },
+
+        toHex: function (h, s, b, a) {
+          var rgb = this.toRGB(h, s, b, a);
+          return '#' + ((1 << 24) | (parseInt(rgb.r, 10) << 16) | (parseInt(rgb.g, 10) << 8) | parseInt(rgb.b, 10)).toString(16).substr(1);
+        }
+      };
+    }])
+    .factory('Slider', ['Helper', function (Helper) {
+      var
+          slider = {
+            maxLeft: 0,
+            maxTop: 0,
+            callLeft: null,
+            callTop: null,
+            knob: {
+              top: 0,
+              left: 0
+            }
+          },
+          pointer = {};
+
+      return {
+        getSlider: function() {
+          return slider;
+        },
+        getLeftPosition: function(event) {
+          return Math.max(0, Math.min(slider.maxLeft, slider.left + ((event.pageX || pointer.left) - pointer.left)));
+        },
+        getTopPosition: function(event) {
+          return Math.max(0, Math.min(slider.maxTop, slider.top + ((event.pageY || pointer.top) - pointer.top)));
+        },
+        setSlider: function (event, fixedPosition) {
+          var
+            target = Helper.closestSlider(event.target),
+            targetOffset = Helper.getOffset(target, fixedPosition);
+          slider.knob = target.children[0].style;
+          slider.left = event.pageX - targetOffset.left - window.pageXOffset + targetOffset.scrollX;
+          slider.top = event.pageY - targetOffset.top - window.pageYOffset + targetOffset.scrollY;
+
+          pointer = {
+            left: event.pageX,
+            top: event.pageY
+          };
+        },
+        setSaturation: function(event, fixedPosition) {
+          slider = {
+            maxLeft: 100,
+            maxTop: 100,
+            callLeft: 'setSaturation',
+            callTop: 'setLightness'
+          };
+          this.setSlider(event, fixedPosition);
+        },
+        setHue: function(event, fixedPosition) {
+          slider = {
+            maxLeft: 0,
+            maxTop: 100,
+            callLeft: false,
+            callTop: 'setHue'
+          };
+          this.setSlider(event, fixedPosition);
+        },
+        setAlpha: function(event, fixedPosition) {
+          slider = {
+            maxLeft: 0,
+            maxTop: 100,
+            callLeft: false,
+            callTop: 'setAlpha'
+          };
+          this.setSlider(event, fixedPosition);
+        },
+        setKnob: function(top, left) {
+          slider.knob.top = top + 'px';
+          slider.knob.left = left + 'px';
+        }
+      };
+    }])
+    .directive('colorpicker', ['$document', '$compile', 'Color', 'Slider', 'Helper', function ($document, $compile, Color, Slider, Helper) {
+      return {
+        require: '?ngModel',
+        restrict: 'A',
+        link: function ($scope, elem, attrs, ngModel) {
+          var
+              thisFormat = attrs.colorpicker ? attrs.colorpicker : 'hex',
+              isBackgroundSetting = angular.isDefined(attrs.backgroundSetting) ? true : false,
+              position = angular.isDefined(attrs.colorpickerPosition) ? attrs.colorpickerPosition : 'bottom',
+              inline = angular.isDefined(attrs.colorpickerInline) ? attrs.colorpickerInline : false,
+              fixedPosition = angular.isDefined(attrs.colorpickerFixedPosition) ? attrs.colorpickerFixedPosition : false,
+              target = angular.isDefined(attrs.colorpickerParent) ? elem.parent() : angular.element(document.body),
+              withInput = angular.isDefined(attrs.colorpickerWithInput) ? attrs.colorpickerWithInput : false,
+              inputTemplate = withInput ? '<input type="text" name="colorpicker-input">' : '';
+
+          var
+              closeButton = !inline ? '<button type="button" class="close close-colorpicker">&times;</button>' : '',
+              template = isBackgroundSetting ?
+                  '<div class="colorpicker dropdown">' +
+                    '<div class="dropdown-menu">' +
+                    '<colorpicker-saturation><i></i></colorpicker-saturation>' +
+                    '<colorpicker-hue><i></i></colorpicker-hue>' +
+                    '<colorpicker-alpha><i></i></colorpicker-alpha>' +
+                    inputTemplate +
+                    '</div>' +
+                    '</div>'
+                :
+                  '<div class="colorpicker dropdown">' +
+                      '<div class="dropdown-menu">' +
+                      '<colorpicker-saturation><i></i></colorpicker-saturation>' +
+                      '<colorpicker-hue><i></i></colorpicker-hue>' +
+                      '<colorpicker-alpha><i></i></colorpicker-alpha>' +
+                      '<colorpicker-preview></colorpicker-preview>' +
+                      inputTemplate +
+                      closeButton +
+                      '</div>' +
+                      '</div>',
+              colorpickerTemplate = angular.element(template),
+              pickerColor = Color,
+              sliderAlpha,
+              sliderHue = colorpickerTemplate.find('colorpicker-hue'),
+              sliderSaturation = colorpickerTemplate.find('colorpicker-saturation'),
+              colorpickerPreview = colorpickerTemplate.find('colorpicker-preview'),
+              pickerColorPointers = colorpickerTemplate.find('i');
+
+          $compile(colorpickerTemplate)($scope);
+
+          if (withInput) {
+            var pickerColorInput = colorpickerTemplate.find('input');
+            pickerColorInput
+                .on('mousedown', function(event) {
+                  event.stopPropagation();
+                })
+                .on('keyup', function(event) {
+                  var newColor = this.value;
+                  elem.val(newColor);
+                  if(ngModel) {
+                    $scope.$apply(ngModel.$setViewValue(newColor));
+                  }
+                  event.stopPropagation();
+                  event.preventDefault();
+                });
+            elem.on('keyup', function() {
+              pickerColorInput.val(elem.val());
+            });
+          }
+
+          var bindMouseEvents = function() {
+            $document.on('mousemove', mousemove);
+            $document.on('mouseup', mouseup);
+          };
+
+          if (thisFormat === 'rgba') {
+            colorpickerTemplate.addClass('alpha');
+            sliderAlpha = colorpickerTemplate.find('colorpicker-alpha');
+            sliderAlpha
+                .on('click', function(event) {
+                  Slider.setAlpha(event, fixedPosition);
+                  mousemove(event);
+                })
+                .on('mousedown', function(event) {
+                  Slider.setAlpha(event, fixedPosition);
+                  bindMouseEvents();
+                });
+          }
+
+          sliderHue
+              .on('click', function(event) {
+                Slider.setHue(event, fixedPosition);
+                mousemove(event);
+              })
+              .on('mousedown', function(event) {
+                Slider.setHue(event, fixedPosition);
+                bindMouseEvents();
+              });
+
+          sliderSaturation
+              .on('click', function(event) {
+                Slider.setSaturation(event, fixedPosition);
+                mousemove(event);
+              })
+              .on('mousedown', function(event) {
+                Slider.setSaturation(event, fixedPosition);
+                bindMouseEvents();
+              });
+
+          if (fixedPosition) {
+            colorpickerTemplate.addClass('colorpicker-fixed-position');
+          }
+
+          colorpickerTemplate.addClass('colorpicker-position-' + position);
+		      if (inline === 'true') {
+			      colorpickerTemplate.addClass('colorpicker-inline');
+		      }
+
+          target.append(colorpickerTemplate);
+
+          if(ngModel) {
+            ngModel.$render = function () {
+              elem.val(ngModel.$viewValue);
+            };
+            $scope.$watch(attrs.ngModel, function(newVal) {
+              update();
+
+              if (withInput) {
+                pickerColorInput.val(newVal);
+              }
+            });
+          }
+
+          elem.on('$destroy', function() {
+            colorpickerTemplate.remove();
+          });
+
+          var previewColor = function () {
+            try {
+              colorpickerPreview.css('backgroundColor', pickerColor[thisFormat]());
+            } catch (e) {
+              colorpickerPreview.css('backgroundColor', pickerColor.toHex());
+            }
+            sliderSaturation.css('backgroundColor', pickerColor.toHex(pickerColor.value.h, 1, 1, 1));
+            if (thisFormat === 'rgba') {
+              sliderAlpha.css.backgroundColor = pickerColor.toHex();
+            }
+          };
+
+          var mousemove = function (event) {
+            var
+                left = Slider.getLeftPosition(event),
+                top = Slider.getTopPosition(event),
+                slider = Slider.getSlider();
+
+            Slider.setKnob(top, left);
+
+            if (slider.callLeft) {
+              pickerColor[slider.callLeft].call(pickerColor, left / 100);
+            }
+            if (slider.callTop) {
+              pickerColor[slider.callTop].call(pickerColor, top / 100);
+            }
+            previewColor();
+            var newColor = pickerColor[thisFormat]();
+            elem.val(newColor);
+            if(ngModel) {
+              $scope.$apply(ngModel.$setViewValue(newColor));
+            }
+            if (withInput) {
+              pickerColorInput.val(newColor);
+            }
+            return false;
+          };
+
+          var mouseup = function () {
+            $document.off('mousemove', mousemove);
+            $document.off('mouseup', mouseup);
+          };
+
+          var update = function () {
+            pickerColor.setColor(elem.val());
+            pickerColorPointers.eq(0).css({
+              left: pickerColor.value.s * 100 + 'px',
+              top: 100 - pickerColor.value.b * 100 + 'px'
+            });
+            pickerColorPointers.eq(1).css('top', 100 * (1 - pickerColor.value.h) + 'px');
+            pickerColorPointers.eq(2).css('top', 100 * (1 - pickerColor.value.a) + 'px');
+            previewColor();
+          };
+
+          var getColorpickerTemplatePosition = function() {
+            var
+                positionValue,
+                positionOffset = Helper.getOffset(elem[0]);
+
+            if(angular.isDefined(attrs.colorpickerParent)) {
+              positionOffset.left = 0;
+              positionOffset.top = 0;
+            }
+
+            if (position === 'top') {
+              positionValue =  {
+                'top': positionOffset.top - 147,
+                'left': positionOffset.left
+              };
+            } else if (position === 'right') {
+              positionValue = {
+                'top': positionOffset.top,
+                'left': positionOffset.left + 126
+              };
+            } else if (position === 'bottom') {
+              positionValue = {
+                'top': positionOffset.top + elem[0].offsetHeight + 2,
+                'left': positionOffset.left
+              };
+            } else if (position === 'left') {
+              positionValue = {
+                'top': positionOffset.top,
+                'left': positionOffset.left - 150
+              };
+            }
+            return {
+              'top': positionValue.top + 'px',
+              'left': positionValue.left + 'px'
+            };
+          };
+
+          var documentMousedownHandler = function() {
+            hideColorpickerTemplate();
+          };
+
+          if(inline === false) {
+            elem.on('click', function () {
+              update();
+              colorpickerTemplate
+                .addClass('colorpicker-visible')
+                .css(getColorpickerTemplatePosition());
+
+              // register global mousedown event to hide the colorpicker
+              $document.on('mousedown', documentMousedownHandler);
+            });
+          } else {
+            update();
+            colorpickerTemplate
+              .addClass('colorpicker-visible')
+              .css(getColorpickerTemplatePosition());
+          }
+
+          colorpickerTemplate.on('mousedown', function (event) {
+            event.stopPropagation();
+            event.preventDefault();
+          });
+
+          var emitEvent = function(name) {
+            if(ngModel) {
+              $scope.$emit(name, {
+                name: attrs.ngModel,
+                value: ngModel.$modelValue
+              });
+            }
+          };
+
+          var hideColorpickerTemplate = function() {
+            if (colorpickerTemplate.hasClass('colorpicker-visible')) {
+              colorpickerTemplate.removeClass('colorpicker-visible');
+              emitEvent('colorpicker-closed');
+              // unregister the global mousedown event
+              $document.off('mousedown', documentMousedownHandler);
+            }
+          };
+
+          colorpickerTemplate.find('button').on('click', function () {
+            hideColorpickerTemplate();
+          });
+        }
+      };
+    }]);
+
 (function () {
   "use strict";
 
@@ -29011,21 +29546,84 @@ app.run(["$templateCache", function($templateCache) {
 (function () {
   "use strict";
 
-  angular.module("risevision.widget.common.background-setting",
-    ["risevision.common.i18n", "risevision.widget.common.color-picker"])
-    .directive("backgroundSetting", ["$templateCache", function ($templateCache) {
+  angular.module("risevision.widget.common.position-setting", ["risevision.common.i18n"])
+    .directive("positionSetting", ["$templateCache", "$log", function ($templateCache/*, $log*/) {
       return {
         restrict: "E",
         scope: {
-          background: "="
+          position: "=",
+          hideLabel: "@"
         },
-        template: $templateCache.get("_angular/background-setting/background-setting.html"),
+        template: $templateCache.get("_angular/position-setting/position-setting.html"),
         link: function ($scope) {
-          $scope.defaultSetting = {
-            color: "transparent"
+          $scope.$watch("position", function(position) {
+            if (typeof position === "undefined") {
+              // set a default
+              $scope.position = "top-left";
+            }
+          });
+        }
+      };
+    }]);
+}());
+
+(function(module) {
+try { app = angular.module("risevision.widget.common.position-setting"); }
+catch(err) { app = angular.module("risevision.widget.common.position-setting", []); }
+app.run(["$templateCache", function($templateCache) {
+  "use strict";
+  $templateCache.put("_angular/position-setting/position-setting.html",
+    "<div class=\"row\">\n" +
+    "  <div class=\"col-md-3\">\n" +
+    "    <label ng-if=\"!hideLabel\"> {{'widgets.alignment' | translate}}</label>\n" +
+    "    <select name=\"position\" ng-model=\"position\" class=\"form-control\">\n" +
+    "      <option value=\"top-left\">{{'position.top.left' | translate}}</option>\n" +
+    "      <option value=\"top-center\">{{'position.top.center' | translate}}</option>\n" +
+    "      <option value=\"top-right\">{{'position.top.right' | translate}}</option>\n" +
+    "      <option value=\"middle-left\">{{'position.middle.left' | translate}}</option>\n" +
+    "      <option value=\"middle-center\">{{'position.middle.center' | translate}}</option>\n" +
+    "      <option value=\"middle-right\">{{'position.middle.right' | translate}}</option>\n" +
+    "      <option value=\"bottom-left\">{{'position.bottom.left' | translate}}</option>\n" +
+    "      <option value=\"bottom-center\">{{'position.bottom.center' | translate}}</option>\n" +
+    "      <option value=\"bottom-right\">{{'position.bottom.right' | translate}}</option>\n" +
+    "    </select>\n" +
+    "  </div>\n" +
+    "</div>\n" +
+    "");
+}]);
+})();
+
+(function () {
+  "use strict";
+
+  angular.module("risevision.widget.common.background-image-setting", [
+    "risevision.common.i18n",
+    "colorpicker.module",
+    "risevision.widget.common.url-field",
+    "risevision.widget.common.position-setting",
+    "risevision.widget.common.background-image"
+  ])
+    .directive("backgroundImageSetting", ["$templateCache", "$log", function ($templateCache/*, $log*/) {
+      return {
+        restrict: "E",
+        scope: {
+          background: "=",
+          companyId: "@"
+        },
+        template: $templateCache.get("_angular/background-image-setting/background-image-setting.html"),
+        link: function (scope) {
+
+          scope.defaultSetting = {
+            color: "rgba(255,255,255,0)",
+            useImage: false,
+            image: {
+              url: "",
+              position: "top-left",
+              scale: true
+            }
           };
 
-          $scope.defaults = function(obj) {
+          scope.defaults = function(obj) {
             if (obj) {
               for (var i = 1, length = arguments.length; i < length; i++) {
                 var source = arguments[i];
@@ -29040,8 +29638,52 @@ app.run(["$templateCache", function($templateCache) {
             return obj;
           };
 
-          $scope.$watch("background", function(background) {
-            $scope.defaults(background, $scope.defaultSetting);
+          scope.imageLoaded = false;
+          scope.imageUrl = "";
+
+          scope.$watch("background", function(background) {
+            scope.defaults(background, scope.defaultSetting);
+          });
+
+          scope.$watch("background.image.url", function (newUrl, oldUrl) {
+            /* In the context of being used in a widget settings, this scenario happens only once when settings
+             initialize and have previously been saved. This will trigger the image to load/display.
+             */
+            if (newUrl !== "" && typeof oldUrl === "undefined") {
+              scope.imageUrl = newUrl;
+            }
+          });
+
+          scope.$on("backgroundImageLoad", function (event, loaded) {
+            scope.$apply(function () {
+              scope.imageLoaded = loaded;
+            });
+
+          });
+
+          scope.$on("urlFieldBlur", function () {
+            scope.imageUrl = scope.background.image.url;
+          });
+
+        }
+      };
+    }]);
+}());
+
+(function () {
+  "use strict";
+
+  angular.module("risevision.widget.common.background-image", [])
+    .directive("backgroundImage", ["$log", function (/*$log*/) {
+      return {
+        restrict: "A",
+        link: function(scope, element) {
+          element.bind("load", function() {
+            scope.$emit("backgroundImageLoad", true);
+          });
+
+          element.bind("error", function () {
+            scope.$emit("backgroundImageLoad", false);
           });
         }
       };
@@ -29049,20 +29691,55 @@ app.run(["$templateCache", function($templateCache) {
 }());
 
 (function(module) {
-try { app = angular.module("risevision.widget.common.background-setting"); }
-catch(err) { app = angular.module("risevision.widget.common.background-setting", []); }
+try { app = angular.module("risevision.widget.common.background-image-setting"); }
+catch(err) { app = angular.module("risevision.widget.common.background-image-setting", []); }
 app.run(["$templateCache", function($templateCache) {
   "use strict";
-  $templateCache.put("_angular/background-setting/background-setting.html",
-    "<div class=\"section\">\n" +
-    "  <h5>{{\"background.heading\" | translate}}</h5>\n" +
-    "  <div class=\"form-group\">\n" +
-    "    <label>{{\"background.color.label\" | translate}}  &nbsp;</label>\n" +
-    "    <div>\n" +
-    "      <input color-picker color=\"background.color\" type=\"background\">\n" +
-    "    </div>\n" +
+  $templateCache.put("_angular/background-image-setting/background-image-setting.html",
+    "<!-- Color -->\n" +
+    "<div class=\"row\">\n" +
+    "  <div class=\"col-md-3\">\n" +
+    "      <div class=\"input-group\">\n" +
+    "        <input class=\"form-control\" colorpicker=\"rgba\" colorpicker-parent=\"true\" background-setting type=\"text\" ng-model=\"background.color\">\n" +
+    "        <span class=\"input-group-addon color-wheel\"></span>\n" +
+    "      </div>\n" +
     "  </div>\n" +
     "</div>\n" +
+    "<!-- Image Choice -->\n" +
+    "<div class=\"checkbox\">\n" +
+    "  <label>\n" +
+    "    <input name=\"choice\" type=\"checkbox\" ng-model=\"background.useImage\"> {{\"background.choice\" | translate}}\n" +
+    "  </label>\n" +
+    "</div>\n" +
+    "<div id=\"backgroundImageControls\" ng-if=\"background.useImage\">\n" +
+    "  <!-- Image Placeholder -->\n" +
+    "  <div class=\"form-group\">\n" +
+    "    <div ng-if=\"!imageLoaded\" class=\"image-placeholder\">\n" +
+    "      <i class=\"fa fa-image\"></i>\n" +
+    "    </div>\n" +
+    "    <!-- Image -->\n" +
+    "    <div ng-show=\"imageLoaded\" class=\"row\">\n" +
+    "      <div class=\"col-xs-5 col-sm-3 col-md-2\">\n" +
+    "        <img ng-src=\"{{imageUrl}}\" background-image class=\"img-rounded img-responsive\">\n" +
+    "      </div>\n" +
+    "    </div>\n" +
+    "  </div>\n" +
+    "  <!-- Image URL -->\n" +
+    "  <url-field id=\"backgroundImageUrl\" url=\"background.image.url\"\n" +
+    "             file-type=\"image\"\n" +
+    "             hide-label=\"true\"\n" +
+    "             company-id=\"{{companyId}}\"\n" +
+    "             ng-model=\"urlentry\" valid></url-field>\n" +
+    "  <!-- Position -->\n" +
+    "  <position-setting position=\"background.image.position\" hide-label=\"true\"></position-setting>\n" +
+    "  <!-- Scale to fit -->\n" +
+    "  <div class=\"checkbox\">\n" +
+    "    <label>\n" +
+    "      <input name=\"scale\" type=\"checkbox\" ng-model=\"background.image.scale\"> {{\"background.image.scale\" | translate}}\n" +
+    "    </label>\n" +
+    "  </div>\n" +
+    "</div>\n" +
+    "\n" +
     "");
 }]);
 })();
@@ -29170,7 +29847,7 @@ angular.module("risevision.widget.video.settings", [
   "risevision.widget.common.video-setting",
   "risevision.widget.common.widget-button-toolbar",
   "risevision.widget.common.tooltip",
-  "risevision.widget.common.background-setting",
+  "risevision.widget.common.background-image-setting",
   "risevision.widget.common.url-field"]);
 
 angular.module("risevision.widget.common", []);
@@ -29299,17 +29976,6 @@ angular.module("risevision.widget.common")
 angular.module("risevision.widget.common")
   .factory("imageValidator", ["$q", function ($q) {
     var factory = {
-      hasValidExtension: function(url) {
-        var extensions = [".jpg", ".jpeg", ".png", ".bmp", ".svg", ".gif"];
-
-        for (var i = 0, len = extensions.length; i < len; i++) {
-          if (url.indexOf(extensions[i]) !== -1) {
-            return true;
-          }
-        }
-
-        return false;
-      },
       // Verify that URL is a valid image file.
       isImage: function(src) {
         var deferred = $q.defer(),
@@ -29533,41 +30199,9 @@ angular.module("risevision.widget.video.settings")
   .controller("videoSettingsController", ["$scope", "$log", "commonSettings",
     function ($scope, $log, commonSettings) {
 
-      // Using this to apply an initial one time error message regarding url being required
-      $scope.initialView = true;
-      $scope.invalidFormat = false;
-
-      var initialUrlWatcher = $scope.$watch("settings.additionalParams.url", function (newUrl, oldUrl) {
-        if (typeof newUrl !== "undefined") {
-          if (typeof oldUrl === "undefined" && newUrl === "") {
-            /* Settings have never been saved (initial save state), need to force validity on form to be false
-             because the URL Field component deliberately does not initially trigger an invalid state
-             */
-            $scope.settingsForm.$setValidity("urlEntry", false);
-          } else if (newUrl !== "") {
-            // entry has occurred
-            $scope.initialView = false;
-            $scope.settingsForm.$setValidity("urlEntry", true);
-
-            // destroy watcher
-            initialUrlWatcher();
-          }
-        }
-      });
-
       $scope.$watch("settings.additionalParams.url", function (url) {
-        var testUrl, isWebM;
-
         if (typeof url !== "undefined" && url !== "") {
-          testUrl = url.toLowerCase();
-          isWebM = (testUrl.indexOf(".webm") !== -1);
-
-          // only if URL Field is valid (so not to show multiple errors) and file targeted is not a webm file
-          $scope.invalidFormat = (!isWebM && $scope.settingsForm.urlField.$valid) ? true : false;
-          // prevent or allow saving the form based on if a webm file is targeted
-          $scope.settingsForm.$setValidity("validFormat", isWebM);
-
-          if ($scope.settingsForm.urlField.$valid && isWebM ) {
+          if ($scope.settingsForm.videoUrl.$valid ) {
             $scope.settings.additionalParams.storage = commonSettings.getStorageUrlData(url);
           } else {
             $scope.settings.additionalParams.storage = {};
