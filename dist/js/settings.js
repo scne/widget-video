@@ -28838,11 +28838,11 @@ app.run(["$templateCache", function($templateCache) {
 (function () {
   "use strict";
 
-  angular.module("risevision.widget.common.url-field",
-    ["risevision.common.i18n",
+  angular.module("risevision.widget.common.url-field", [
+    "risevision.common.i18n",
     "risevision.widget.common.tooltip",
-    "risevision.widget.common.storage-selector"])
-
+    "risevision.widget.common.storage-selector"
+  ])
     .directive("urlField", ["$templateCache", "$log", function ($templateCache, $log) {
       return {
         restrict: "E",
@@ -28851,13 +28851,40 @@ app.run(["$templateCache", function($templateCache) {
           url: "=",
           hideLabel: "@",
           hideStorage: "@",
-          companyId: "@"
+          companyId: "@",
+          fileType: "@"
         },
         template: $templateCache.get("_angular/url-field/url-field.html"),
         link: function (scope, element, attrs, ctrl) {
 
+          function hasValidExtension(url, fileType) {
+            var testUrl = url.toLowerCase(),
+              extensions;
+
+            switch(fileType) {
+              case "image":
+                extensions = [".jpg", ".jpeg", ".png", ".bmp", ".svg", ".gif"];
+                break;
+              case "video":
+                extensions = [".webm"];
+                break;
+              default:
+                extensions = [];
+            }
+
+            for (var i = 0, len = extensions.length; i < len; i++) {
+              if (testUrl.indexOf(extensions[i]) !== -1) {
+                return true;
+              }
+            }
+
+            return false;
+          }
+
+
           function testUrl(value) {
-            var urlRegExp;
+            var urlRegExp,
+              isValid;
 
             /*
              Discussion
@@ -28877,7 +28904,18 @@ app.run(["$templateCache", function($templateCache) {
               value = "http://" + value;
             }
 
-            return urlRegExp.test(value);
+            isValid = urlRegExp.test(value);
+
+            if (isValid && typeof scope.fileType !== "undefined") {
+              isValid = hasValidExtension(value, scope.fileType);
+              if (!isValid) {
+                scope.invalidType = scope.fileType;
+              }
+            } else {
+              scope.invalidType = "url";
+            }
+
+            return isValid;
           }
 
           // By default enforce validation
@@ -28887,15 +28925,31 @@ app.run(["$templateCache", function($templateCache) {
           // Validation state
           scope.valid = true;
 
+          scope.invalidType = "url";
+
+          scope.allowInitEmpty = (typeof attrs.initEmpty !== "undefined") ? true : false;
+
           if (!scope.hideStorage) {
             scope.$on("picked", function (event, data) {
               scope.url = data[0];
             });
           }
 
+          scope.blur = function() {
+            scope.$emit("urlFieldBlur");
+          };
+
           scope.$watch("url", function (url) {
-            if (url && scope.doValidation) {
-              scope.valid = testUrl(scope.url);
+            if (typeof url !== "undefined" && url !== null) {
+
+              if (url !== "" && scope.allowInitEmpty) {
+                // ensure an empty "" value now gets validated
+                scope.allowInitEmpty = false;
+              }
+
+              if (scope.doValidation && !scope.allowInitEmpty) {
+                scope.valid = testUrl(scope.url);
+              }
             }
           });
 
@@ -28910,7 +28964,10 @@ app.run(["$templateCache", function($templateCache) {
             if(typeof scope.url !== "undefined") {
               if (doValidation) {
                 scope.forcedValid = false;
-                scope.valid = testUrl(scope.url);
+
+                if (!scope.allowInitEmpty) {
+                  scope.valid = testUrl(scope.url);
+                }
               } else {
                 scope.forcedValid = true;
                 scope.valid = true;
@@ -28930,12 +28987,14 @@ app.run(["$templateCache", function($templateCache) {
   "use strict";
   $templateCache.put("_angular/url-field/url-field.html",
     "<div class=\"form-group\" >\n" +
-    "  <label for=\"url\" ng-if=\"!hideLabel\">{{ \"url.label\" | translate }}</label>\n" +
+    "  <label ng-if=\"!hideLabel\">{{ \"url.label\" | translate }}</label>\n" +
     "  <div ng-class=\"{'input-group':!hideStorage}\">\n" +
-    "    <input id=\"url\" name=\"url\" type=\"text\" ng-model=\"url\" class=\"form-control\" placeholder=\"http://\">\n" +
+    "    <input name=\"url\" type=\"text\" ng-model=\"url\" ng-blur=\"blur()\" class=\"form-control\" placeholder=\"http://\">\n" +
     "    <span class=\"input-url-addon\" ng-if=\"!hideStorage\"><storage-selector company-id=\"{{companyId}}\"></storage-selector></span>\n" +
     "  </div>\n" +
-    "  <p ng-if=\"!valid\" class=\"help-block\">{{ \"url.invalid\" | translate }}</p>\n" +
+    "  <p ng-if=\"!valid && invalidType === 'url'\" class=\"text-danger\">{{ \"url.errors.url\" | translate }}</p>\n" +
+    "  <p ng-if=\"!valid && invalidType === 'image'\" class=\"text-danger\">{{ \"url.errors.image\" | translate }}</p>\n" +
+    "  <p ng-if=\"!valid && invalidType === 'video'\" class=\"text-danger\">{{ \"url.errors.video\" | translate }}</p>\n" +
     "  <div class=\"checkbox\" ng-show=\"forcedValid || !valid\">\n" +
     "    <label>\n" +
     "      <input name=\"validate-url\" ng-click=\"doValidation = !doValidation\" type=\"checkbox\"\n" +
@@ -29235,6 +29294,42 @@ angular.module("risevision.widget.common")
     this.get = function () {
       return deferred.promise;
     };
+  }]);
+
+angular.module("risevision.widget.common")
+  .factory("imageValidator", ["$q", function ($q) {
+    var factory = {
+      hasValidExtension: function(url) {
+        var extensions = [".jpg", ".jpeg", ".png", ".bmp", ".svg", ".gif"];
+
+        for (var i = 0, len = extensions.length; i < len; i++) {
+          if (url.indexOf(extensions[i]) !== -1) {
+            return true;
+          }
+        }
+
+        return false;
+      },
+      // Verify that URL is a valid image file.
+      isImage: function(src) {
+        var deferred = $q.defer(),
+          image = new Image();
+
+        image.onload = function() {
+          deferred.resolve(true);
+        };
+
+        image.onerror = function() {
+          deferred.resolve(false);
+        };
+
+        image.src = src;
+
+        return deferred.promise;
+      }
+    };
+
+    return factory;
   }]);
 
 angular.module("risevision.widget.common")
