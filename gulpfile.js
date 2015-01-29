@@ -1,6 +1,6 @@
 /* jshint node: true */
 
-(function () {
+(function (console) {
   "use strict";
 
   var gulp = require("gulp");
@@ -19,11 +19,16 @@
   var html2js = require("gulp-html2js");
   var bower = require("gulp-bower");
   var del = require("del");
+  var colors = require("colors");
 
   var appJSFiles = [
     "src/**/*.js",
     "!./src/components/**/*"
-  ];
+    ],
+    htmlFiles = [
+      "./src/settings.html",
+      "./src/widget.html"
+    ];
 
   gulp.task("clean-bower", function(cb){
     del(["./src/components/**"], cb);
@@ -101,16 +106,50 @@
       .pipe(gulp.dest("dist/"));
   });
 
-  gulp.task("build", function (cb) {
-    runSequence(["clean", "config"], ["source", "fonts", "images", "i18n", "rise-storage"], ["unminify"], cb);
+  gulp.task("webdriver_update", factory.webdriveUpdate());
+  gulp.task("test:metrics", factory.metrics());
+
+  // ***** e2e Testing ***** //
+
+  gulp.task("e2e:server-close", factory.testServerClose());
+
+  // ** Settings ** //
+  gulp.task("html:e2e:settings", factory.htmlE2E({
+    files: htmlFiles,
+    e2eMockData: "../test/data/main.js"
+  }));
+
+  gulp.task("e2e:server:settings", ["config", "html:e2e:settings"], factory.testServer());
+
+  gulp.task("test:e2e:settings:run", ["webdriver_update"], factory.testE2EAngular({
+      testFiles: "test/e2e/settings.js"}
+  ));
+
+  gulp.task("test:e2e:settings", function(cb) {
+    runSequence(["e2e:server:settings"], "test:e2e:settings:run", "e2e:server-close", cb);
   });
 
-  gulp.task("html:e2e",
-    factory.htmlE2E({
-      files: ["./src/settings.html", "./src/widget.html"],
-      e2eMockData: "../test/mock-data.js"
-    }));
+  // ** Widget ** //
+  gulp.task("html:e2e:widget", factory.htmlE2E({
+    files: htmlFiles,
+    e2eMockData: "../test/data/main.js"
+  }));
 
+  gulp.task("e2e:server:widget", ["config", "html:e2e:widget"], factory.testServer());
+
+  gulp.task("test:e2e:widget:run", factory.testE2E({
+    testFiles: "test/e2e/widget-*.js"
+  }));
+
+  gulp.task("test:e2e:widget", function(cb) {
+    runSequence(["e2e:server:widget"], "test:e2e:widget:run", "e2e:server-close", cb);
+  });
+
+  gulp.task("test:e2e", function(cb) {
+    runSequence("test:e2e:settings", "test:e2e:widget", cb);
+  });
+
+  // ****** Unit Testing ***** //
   gulp.task("test:unit:settings", factory.testUnitAngular(
     {testFiles: [
       "src/components/jquery/dist/jquery.js",
@@ -136,32 +175,11 @@
       "test/unit/settings/**/*spec.js"]}
   ));
 
-  gulp.task("webdriver_update", factory.webdriveUpdate());
-  gulp.task("e2e:server-close", factory.testServerClose());
-  gulp.task("test:metrics", factory.metrics());
-
-  gulp.task("e2e:server", ["config", "html:e2e"], factory.testServer());
-
-  gulp.task("test:e2e:widget", factory.testE2E({
-      testFiles: "test/e2e/widget-scenarios.js"}
-  ));
-
-  gulp.task("test:e2e:settings", ["webdriver_update"], factory.testE2EAngular({
-      testFiles: "test/e2e/settings-scenarios.js"}
-  ));
-
-  gulp.task("test:e2e", function(cb) {
-    runSequence(["html:e2e", "e2e:server"], "test:e2e:widget", "test:e2e:settings", "e2e:server-close", cb);
-  });
-
   gulp.task("test:unit", function(cb) {
     runSequence("test:unit:settings", cb);
   });
 
-  gulp.task("test", function(cb) {
-    runSequence("build", "test:unit", "test:e2e", "test:metrics", cb);
-  });
-
+  // ***** Primary Tasks ***** //
   gulp.task("bower-clean-install", ["clean-bower"], function(cb){
     return bower().on("error", function(err) {
       console.log(err);
@@ -169,8 +187,21 @@
     });
   });
 
-  gulp.task("default", function(cb) {
-    runSequence("test", "build", cb);
+  gulp.task("test", function(cb) {
+    runSequence("test:unit", "test:e2e", "test:metrics", cb);
   });
 
-})();
+  gulp.task("build", function (cb) {
+    runSequence(["clean", "config"], ["source", "fonts", "images", "i18n", "rise-storage"], ["unminify"], cb);
+  });
+
+  gulp.task("default", [], function() {
+    console.log("********************************************************************".yellow);
+    console.log("  gulp bower-clean-install: delete and re-install bower components".yellow);
+    console.log("  gulp test: run e2e and unit tests".yellow);
+    console.log("  gulp build: build a distribution version".yellow);
+    console.log("********************************************************************".yellow);
+    return true;
+  });
+
+})(console);
