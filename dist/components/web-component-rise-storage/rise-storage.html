@@ -1,7 +1,7 @@
 <link rel="import" href="../../components/polymer/polymer.html">
 <link rel="import" href="../../components/core-ajax/core-ajax.html">
 
-<polymer-element name="rise-storage" attributes="companyId folder fileName folderRefresh">
+<polymer-element name="rise-storage" attributes="companyId folder fileName fileType contentType folderRefresh">
   <template>
     <core-ajax id="storage"
       url="{{url}}"
@@ -38,7 +38,7 @@
        *
        * @attribute companyId
        * @type string
-       * @default ''
+       * @default ""
        */
       companyId: "",
 
@@ -47,7 +47,7 @@
        *
        * @attribute folder
        * @type string
-       * @default ''
+       * @default ""
        */
       folder: "",
 
@@ -56,9 +56,27 @@
        *
        * @attribute fileName
        * @type string
-       * @default ''
+       * @default ""
        */
       fileName: "",
+
+      /**
+       * Only return files that are of a particular file type.
+       *
+       * @attribute fileType
+       * @type string
+       * @default ""
+       */
+      fileType: "",
+
+      /**
+       * Only return files with a particular content type.
+       *
+       * @attribute contentType
+       * @type string
+       * @default ""
+       */
+      contentType: "",
 
       /**
        * The number of seconds before the folder will be checked for changes.
@@ -75,7 +93,7 @@
        *
        * @property url
        * @type string
-       * @default ''
+       * @default ""
        */
       url: "",
 
@@ -88,10 +106,23 @@
        */
       isCacheRunning: false,
 
+      /**
+       * Polymer has finished its initialization. This is the entry point.
+       */
       ready: function() {
-        this.setUrl();
+        this.images = ["image/jpeg", "image/png", "image/bmp", "image/svg+xml", "image/gif"];
+        this.videos = ["video/mp4", "video/ogg", "video/webm"];
+        this.imagesLen = this.images.length;
+        this.videosLen = this.videos.length;
+        this.contentTypes = this.contentType.split(" ");
+        this.contentTypesLen = this.contentTypes.length;
+
+        this.$.ping.go();
       },
 
+      /**
+       * Set the URL that is used for making requests to Storage.
+       */
       setUrl: function() {
         var baseUrl = "https://www.googleapis.com/storage/v1/b/risemedialibrary-" + encodeURIComponent(this.companyId) + "/o",
           delimiter = "?delimiter=" + encodeURIComponent("/"),
@@ -123,6 +154,9 @@
         }
       },
 
+      /**
+       * Handle a folder refresh.
+       */
       startTimer: function() {
         // Don't refresh individual files.
         if (!this.fileName) {
@@ -139,28 +173,68 @@
         }
       },
 
-      companyIdChanged: function() {
-        this.setUrl();
+      /**
+       * Filter an item by file type.
+       */
+      filterByFileType: function(contentType) {
+        var i;
+
+        if (this.fileType === "image") {
+          for (i = 0; i < this.imagesLen; i++) {
+            if (contentType === this.images[i]) {
+              return true;
+            }
+          }
+        }
+        else if (this.fileType === "video") {
+          for (i = 0; i < this.videosLen; i++) {
+            if (contentType === this.videos[i]) {
+              return true;
+            }
+          }
+        }
+
+        return false;
       },
 
-      folderChanged: function() {
-        this.setUrl();
+      /**
+       * Filter an item by content type.
+       */
+      filterByContentType: function(contentType) {
+        for (var i = 0; i < this.contentTypesLen; i++) {
+          if (contentType === this.contentTypes[i]) {
+            return true;
+          }
+        }
+
+        return false;
       },
 
-      fileNameChanged: function() {
-        this.setUrl();
-      },
-
+      /**
+       * Fired when a response is received from Storage.
+       */
       handleStorageResponse: function(e, resp) {
         var self = this,
           urls = [];
 
-        // Send back array of URLs.
+        // Multiple files
         if (resp && resp.response && resp.response.items) {
           resp.response.items.forEach(function(elem) {
-            // Check that this is not the folder itself.
+            // Check that this is not a folder.
             if (elem.name && (elem.name.slice(-1) !== "/")) {
               if (elem.mediaLink) {
+                // Perform any necessary filtering.
+                if (self.fileType) {
+                  if (!self.filterByFileType(elem.contentType)) {
+                    return;
+                  }
+                }
+                else if (self.contentType) {
+                  if (!self.filterByContentType(elem.contentType)) {
+                    return;
+                  }
+                }
+
                 if (self.isCacheRunning) {
                   urls.push("http://localhost:9494/?url=" + escape(elem.mediaLink));
                 }
@@ -171,6 +245,7 @@
             }
           });
         }
+        // Single file.
         else if (resp && resp.response && resp.response.mediaLink) {
           if (this.isCacheRunning) {
             urls.push("http://localhost:9494/?url=" + escape(resp.response.mediaLink));
@@ -184,12 +259,17 @@
         this.fire("rise-storage-response", urls);
       },
 
+      /**
+       * Fired when an error is received from Storage.
+       */
       handleStorageError: function(e, resp) {
-        console.log("Storage Error: " + resp.xhr.status + " " + resp.xhr.statusText);
-
         this.fire("rise-storage-error", resp);
+        console.log("Storage Error: " + resp.xhr.status + " " + resp.xhr.statusText);
       },
 
+      /**
+       * Fired when a response is received from Rise Cache.
+       */
       handlePingResponse: function(e, resp) {
         if (resp.response === "") {
           this.isCacheRunning = false;
@@ -201,11 +281,13 @@
         this.go();
       },
 
+      /**
+       * Fired when an error is received from Rise Cache.
+       */
       handlePingError: function(e, resp) {
-        console.log("Ping Error: " + resp.xhr.status + " " + resp.xhr.statusText);
-
         this.isCacheRunning = false;
         this.go();
+        console.log("Ping Error: " + resp.xhr.status + " " + resp.xhr.statusText);
       },
 
       /**
@@ -214,6 +296,7 @@
        * @method go
        */
       go: function() {
+        this.setUrl();
         this.$.storage.go();
       }
     });
