@@ -115,7 +115,7 @@
         params: {},
         additionalParams: {
           "url": validVideoUrl,
-          "storage": {},
+          "videoStorage": {},
           "video": {
             "autoplay":false,
             "volume":50,
@@ -130,7 +130,8 @@
               "position": "top-left",
               "scale": true
             }
-          }
+          },
+          "backgroundStorage": {}
         }
       };
 

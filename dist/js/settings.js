@@ -29933,7 +29933,7 @@ angular.module("risevision.widget.common")
     var factory = {
       getStorageUrlData: function (url) {
         var storage = {},
-          str, arr;
+          str, arr, params, pair;
 
         if (url.indexOf(STORAGE_URL_BASE) !== -1) {
           str = url.split(STORAGE_URL_BASE)[1];
@@ -29944,12 +29944,26 @@ angular.module("risevision.widget.common")
             arr[arr.length - 2] : "";
           storage.fileName = arr[arr.length - 1];
         }
+        // Check if a folder was selected.
+        else {
+          params = url.split("?");
+
+          for (var i = 0; i < params.length; i++) {
+            pair = params[i].split("=");
+
+            if (pair[0] === "prefix") {
+              storage.folder = decodeURIComponent(pair[1]);
+              storage.fileName = "";
+              break;
+            }
+          }
+        }
 
         return storage;
       }
     };
-    return factory;
 
+    return factory;
   }]);
 
 angular.module("risevision.widget.common")
@@ -30202,9 +30216,19 @@ angular.module("risevision.widget.video.settings")
       $scope.$watch("settings.additionalParams.url", function (url) {
         if (typeof url !== "undefined" && url !== "") {
           if ($scope.settingsForm.videoUrl.$valid ) {
-            $scope.settings.additionalParams.storage = commonSettings.getStorageUrlData(url);
+            $scope.settings.additionalParams.videoStorage = commonSettings.getStorageUrlData(url);
           } else {
-            $scope.settings.additionalParams.storage = {};
+            $scope.settings.additionalParams.videoStorage = {};
+          }
+        }
+      });
+
+      $scope.$watch("settings.additionalParams.background.image.url", function (url) {
+        if (typeof url !== "undefined" && url !== "") {
+          if ($scope.settingsForm.background.$valid ) {
+            $scope.settings.additionalParams.backgroundStorage = commonSettings.getStorageUrlData(url);
+          } else {
+            $scope.settings.additionalParams.backgroundStorage = {};
           }
         }
       });
@@ -30214,8 +30238,9 @@ angular.module("risevision.widget.video.settings")
     params: {},
     additionalParams: {
       url: "",
-      storage: {},
+      videoStorage: {},
       video: {},
-      background: {}
+      background: {},
+      backgroundStorage: {}
     }
   });

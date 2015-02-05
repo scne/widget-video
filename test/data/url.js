@@ -1,5 +1,4 @@
 (function(window) {
-
   "use strict";
 
   window.gadget = window.gadget || {};
@@ -8,7 +7,7 @@
     "params": {},
     "additionalParams": {
       "url": "https://s3.amazonaws.com/risecontentfiles/tests/a_RFID.webm",
-      "storage": {},
+      "videoStorage": {},
       "video": {
         "autoplay":true,
         "volume":50,
@@ -16,8 +15,15 @@
         "autohide":true
       },
       "background": {
-        "color": "transparent"
-      }
+        "color": "rgba(145,145,145,0)",
+        "useImage": true,
+        "image": {
+          "url": "http://s3.amazonaws.com/rise-common/images/logo-small.png",
+          "position": "middle-center",
+          "scale": true
+        }
+      },
+      "backgroundStorage": {}
     }
   };
 
