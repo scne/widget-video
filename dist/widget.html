@@ -56,8 +56,12 @@
     }
 
     video {
-      width: 100%;
-      height: auto;
+      max-width: 100%;
+      height: auto !important;
+    }
+
+    #videoContainer {
+      visibility: hidden;
     }
 
     #background {
@@ -103,10 +107,11 @@
 <body>
 
   <rise-storage id="backgroundStorage"></rise-storage>
+  <rise-storage id="videoStorage"></rise-storage>
 
   <div id="background"></div>
-  <div id="container">
-    <video controls src=""></video>
+  <div id="videoContainer">
+    <video id="video" controls loop></video>
   </div>
 
   <!-- build:e2eMockData -->
