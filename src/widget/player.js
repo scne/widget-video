@@ -5,7 +5,43 @@ RiseVision.Video.Player = function (data, companyId) {
   "use strict";
 
   var _video = document.getElementById("video"),
-    _initialPlay = true;
+    _videoContainer = document.getElementById("videoContainer"),
+    _initialPlay = true,
+    _userPaused = false,
+    _viewerPaused = false;
+
+  /*
+   * Private Methods
+   */
+  function _onLoadedData() {
+    // at lease 1st frame of video has loaded
+    _videoContainer.style.visibility = "visible";
+    // remove this listener
+    _video.removeEventListener("loadeddata", _onLoadedData, false);
+  }
+
+  function _onCanPlay() {
+    // enough data has loaded to safely play without interruption
+    RiseVision.Video.playerReady();
+    // remove this listener
+    _video.removeEventListener("canplay", _onCanPlay, false);
+  }
+
+  function _onEnded() {
+    // a "pause" event is always fired before "ended" event, ensure _userPaused is false
+    _userPaused = false;
+    // video ended
+    RiseVision.Video.videoEnded();
+  }
+
+  function _onPause() {
+    // this handler also gets called via public "pause()" function, only set "_userPaused = true" if not the case
+    _userPaused = !_viewerPaused;
+  }
+
+  function _onPlay() {
+    _userPaused = false;
+  }
 
   /*
    *  Public Methods
@@ -28,10 +64,12 @@ RiseVision.Video.Player = function (data, companyId) {
     typeAttr.value = "video/webm";
     source.setAttributeNode(typeAttr);
 
-    // listen for video data loaded
-    _video.addEventListener("loadeddata", function() {
-      RiseVision.Video.playerReady();
-    }, false);
+    // video events
+    _video.addEventListener("loadeddata", _onLoadedData, false);
+    _video.addEventListener("canplay", _onCanPlay, false);
+    _video.addEventListener("ended", _onEnded, false);
+    _video.addEventListener("pause", _onPause, false);
+    _video.addEventListener("play", _onPlay, false);
 
     if (Object.keys(data.videoStorage).length === 0) {
       // Non storage URL
@@ -55,10 +93,12 @@ RiseVision.Video.Player = function (data, companyId) {
   }
 
   function pause() {
+    _viewerPaused = true;
     _video.pause();
   }
 
   function play() {
+    _viewerPaused = false;
     _video.play();
 
     if (_initialPlay) {
@@ -66,10 +106,15 @@ RiseVision.Video.Player = function (data, companyId) {
     }
   }
 
+  function userPaused() {
+    return _userPaused;
+  }
+
   return {
     "isInitialPlay": isInitialPlay,
     "init": init,
     "pause": pause,
-    "play": play
+    "play": play,
+    "userPaused": userPaused
   };
 };

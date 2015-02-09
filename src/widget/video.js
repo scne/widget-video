@@ -10,12 +10,16 @@ RiseVision.Video = (function (document, gadgets) {
     _additionalParams = {},
     _companyId = null,
     _background = null,
-    _player = null,
-    _viewerPaused = false;
+    _player = null;
 
   /*
    *  Private Methods
    */
+  function _done() {
+    gadgets.rpc.call("", "rsevent_done", null, _prefs.getString("id"));
+
+  }
+
   function _ready() {
     gadgets.rpc.call("", "rsevent_ready", null, _prefs.getString("id"),
       true, true, true, true, true);
@@ -25,13 +29,13 @@ RiseVision.Video = (function (document, gadgets) {
    *  Public Methods
    */
   function backgroundReady() {
+    // create and initialize the Player instance
     _player = new RiseVision.Video.Player(_additionalParams, _companyId);
     _player.init();
   }
 
   function pause() {
     _player.pause();
-    _viewerPaused = true;
   }
 
   function play() {
@@ -41,17 +45,13 @@ RiseVision.Video = (function (document, gadgets) {
         _player.play();
       }
     } else {
-      if (_viewerPaused) {
+      if (!_player.userPaused()) {
         _player.play();
-        _viewerPaused = false;
       }
     }
   }
 
   function playerReady() {
-    // Show the video player
-    document.getElementById("videoContainer").style.visibility = "visible";
-
     _ready();
   }
 
@@ -65,13 +65,17 @@ RiseVision.Video = (function (document, gadgets) {
 
     document.getElementById("videoContainer").style.height = _prefs.getInt("rsH") + "px";
 
-    // create new Background instance
+    // create and initialize the Background instance
     _background = new RiseVision.Video.Background(_additionalParams, _companyId);
     _background.init();
   }
 
   function stop() {
     // TODO: need a reset on on the player
+  }
+
+  function videoEnded() {
+    _done();
   }
 
   return {
@@ -81,7 +85,8 @@ RiseVision.Video = (function (document, gadgets) {
     "setCompanyId": setCompanyId,
     "setAdditionalParams": setAdditionalParams,
     "playerReady": playerReady,
-    "stop": stop
+    "stop": stop,
+    "videoEnded": videoEnded
   };
 
 })(document, gadgets);
