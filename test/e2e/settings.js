@@ -118,9 +118,7 @@
           "videoStorage": {},
           "video": {
             "autoplay":false,
-            "volume":50,
-            "loop": true,
-            "autohide":true
+            "volume":50
           },
           "background": {
             "color": "rgba(255,255,255,0)",

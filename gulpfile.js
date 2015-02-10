@@ -137,9 +137,11 @@
 
   gulp.task("e2e:server:widget", ["config", "html:e2e:widget"], factory.testServer());
 
-  gulp.task("test:e2e:widget:run", factory.testE2E({
-    testFiles: "test/e2e/widget-*.js"
-  }));
+  gulp.task("test:e2e:widget:run", ["webdriver_update"], factory.testE2EAngular({
+      testFiles: [
+        "test/e2e/widget-url.js"
+      ]}
+  ));
 
   gulp.task("test:e2e:widget", function(cb) {
     runSequence(["e2e:server:widget"], "test:e2e:widget:run", "e2e:server-close", cb);
