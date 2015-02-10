@@ -13,9 +13,7 @@
       },
       "video": {
         "autoplay":true,
-        "volume":50,
-        "loop": true,
-        "autohide":true
+        "volume":50
       },
       "background": {
         "color": "rgba(100,100,100,0.75)",

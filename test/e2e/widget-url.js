@@ -1,65 +1,60 @@
-var system = require("system");
-var e2ePort = system.env.E2E_PORT || 8099;
-var url = "http://localhost:"+e2ePort+"/src/widget-e2e.html";
+/* jshint expr: true */
 
-casper.test.begin("e2e Testing - Video and Background Image using URL", {
-  test: function(test) {
-    casper.start();
+(function () {
+  "use strict";
 
-    casper.thenOpen(url, function () {
-      test.assertTitle("Video Widget", "Test page has loaded");
+  /* https://github.com/angular/protractor/blob/master/docs/getting-started.md */
+
+  var chai = require("chai");
+  var chaiAsPromised = require("chai-as-promised");
+
+  chai.use(chaiAsPromised);
+  var expect = chai.expect;
+
+  browser.driver.manage().window().setSize(1024, 768);
+
+  describe("Video Widget e2e Testing - via non-storage URL", function() {
+
+    beforeEach(function () {
+      // point directly to the widget e2e file
+      browser.driver.get("http://localhost:8099/src/widget-e2e.html");
+
+      // need to ignore Angular synchronization, this is a non-angular page
+      return browser.ignoreSynchronization = true;
     });
 
-    casper.then(function () {
-      casper.waitFor(function waitForUI() {
-        return this.evaluate(function loadImage() {
-          var style = document.getElementById("background").getAttribute("style");
-          return (style !== null && style !== "");
-        });
-      },
-      function then() {
-        test.comment("Background using non-storage URL");
-
-        test.assertExists(".scale-to-fit", "Scale to fit");
-        test.assertExists(".middle-center", "Position");
-        test.assertEquals(this.getElementAttribute("#background", "style"),
-         "background-image: url(http://s3.amazonaws.com/rise-common/images/logo-small.png); ", "Image");
-         test.assertEquals(this.getElementAttribute("body", "style"),
-         "background-image: initial; background-attachment: initial; background-origin: initial; " +
-         "background-clip: initial; background-color: rgba(145, 145, 145, 0); " +
-         "background-position: initial initial; background-repeat: initial initial; ",
-         "Background color");
-      });
+    it("Should apply correct background color", function () {
+      // body background color
+      expect(element(by.css("body")).getAttribute("style")).
+        to.eventually.equal("background: rgba(145, 145, 145, 0);");
     });
 
-    casper.then(function () {
-      casper.waitFor(function waitForUI() {
-          /*
-           TODO: Need to figure out why #videoContainer div style attribute always returns "".
-                 Evaluating "src" attribute of <source> element instead.
-           */
+    it("Should display background image", function () {
+      // background image
+      expect(element(by.id("background")).getAttribute("style")).
+        to.eventually.equal("background-image: url(http://s3.amazonaws.com/rise-common/images/logo-small.png);");
 
-          return this.evaluate(function loadVideo() {
-            var video = document.getElementById("video"),
-              source = video.getElementsByTagName("source")[0];
+      // scale to fit class should be applied
+      expect(element(by.css(".scale-to-fit")).isPresent()).to.eventually.be.true;
 
-            // has video src been applied
-            return source !== null && source.hasAttribute("src") && source.getAttribute("src") !== "";
-          });
-        },
-        function then() {
-          test.comment("Video using non-storage URL");
-
-          // TODO: Need way to test visibility of #videoContainer if style can't be used
-
-          // TODO: Any other applicable tests?
-        });
+      // correct positioning class
+      expect(element(by.css(".middle-center")).isPresent()).to.eventually.be.true;
     });
 
-    casper.run(function runTest() {
-      test.done();
+    it("Should load and display video", function () {
+      // source element should exist
+      expect(element(by.tagName("source")).isPresent()).to.eventually.be.true;
+
+      // source element should apply "src" attribute with correct value
+      expect(element(by.css("source")).getAttribute("src")).
+        to.eventually.equal("https://s3.amazonaws.com/risecontentfiles/tests/a_RFID.webm");
+
+      // video container should be visible
+      expect(element(by.id("videoContainer")).isPresent()).to.eventually.be.true;
+      expect(element(by.id("videoContainer")).isDisplayed()).to.eventually.be.true;
+
     });
 
-  }
+  });
 
-});
+})();
