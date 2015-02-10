@@ -12,16 +12,16 @@
         "fileName": "a_food_show.webm"
       },
       "video": {
-        "autoplay":true,
-        "volume":50
+        "autoplay":false,
+        "volume":75
       },
       "background": {
-        "color": "rgba(100,100,100,0.75)",
+        "color": "rgba(100,100,100,0)",
         "useImage": true,
         "image": {
           "url": "https://storage.googleapis.com/risemedialibrary-dd474bee-b237-46e3-aa20-98e975679773/1_chopsticks.jpg",
-          "position": "middle-center",
-          "scale": true
+          "position": "bottom-right",
+          "scale": false
         }
       },
       "backgroundStorage": {
@@ -30,5 +30,6 @@
       }
     }
   };
+
 
 })(window);

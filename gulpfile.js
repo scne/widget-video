@@ -20,14 +20,11 @@
   var bower = require("gulp-bower");
   var del = require("del");
   var colors = require("colors");
+  var htmlreplace = require("gulp-html-replace");
 
   var appJSFiles = [
     "src/**/*.js",
     "!./src/components/**/*"
-    ],
-    htmlFiles = [
-      "./src/settings.html",
-      "./src/widget.html"
     ];
 
   gulp.task("clean-bower", function(cb){
@@ -115,7 +112,6 @@
 
   // ** Settings ** //
   gulp.task("html:e2e:settings", factory.htmlE2E({
-    files: htmlFiles,
     e2eMockData: "../test/data/url.js"
   }));
 
@@ -130,16 +126,40 @@
   });
 
   // ** Widget ** //
-  gulp.task("html:e2e:widget", factory.htmlE2E({
-    files: htmlFiles,
-    e2eMockData: "../test/data/url.js"
-  }));
+  gulp.task("html:e2e:widget:url", function () {
+    return gulp.src("./src/widget.html")
+      .pipe(htmlreplace({
+        e2egadgets: "../node_modules/widget-tester/mocks/gadget-mocks.js",
+        e2eMockData: "../test/data/url.js"
+      }))
+      .pipe(rename(function (path) {
+        path.basename += "-url-e2e";
+      }))
+      .pipe(gulp.dest("./src/"));
+  });
+
+  gulp.task("html:e2e:widget:storage", function () {
+    return gulp.src("./src/widget.html")
+      .pipe(htmlreplace({
+        e2egadgets: "../node_modules/widget-tester/mocks/gadget-mocks.js",
+        e2eMockData: "../test/data/storage.js"
+      }))
+      .pipe(rename(function (path) {
+        path.basename += "-storage-e2e";
+      }))
+      .pipe(gulp.dest("./src/"));
+  });
+
+  gulp.task("html:e2e:widget", function (cb) {
+    runSequence("html:e2e:widget:url", "html:e2e:widget:storage", cb);
+  });
 
   gulp.task("e2e:server:widget", ["config", "html:e2e:widget"], factory.testServer());
 
   gulp.task("test:e2e:widget:run", ["webdriver_update"], factory.testE2EAngular({
       testFiles: [
-        "test/e2e/widget-url.js"
+        "test/e2e/widget-url.js",
+        "test/e2e/widget-storage.js"
       ]}
   ));
 
