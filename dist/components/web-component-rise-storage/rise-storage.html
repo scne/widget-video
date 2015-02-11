@@ -1,7 +1,9 @@
 <link rel="import" href="../../components/polymer/polymer.html">
 <link rel="import" href="../../components/core-ajax/core-ajax.html">
 
-<polymer-element name="rise-storage" attributes="companyId folder fileName fileType contentType folderRefresh">
+<script src="../../components/underscore/underscore.js"></script>
+
+<polymer-element name="rise-storage" attributes="companyId folder fileName fileType contentType folderRefresh sort sortDirection">
   <template>
     <core-ajax id="storage"
       url="{{url}}"
@@ -18,7 +20,7 @@
   </template>
 
   <script>
-    /* global Polymer */
+    /* global Polymer, _ */
     /*jshint newcap: false */
     Polymer("rise-storage", {
       /**
@@ -80,13 +82,30 @@
 
       /**
        * The number of seconds before the folder will be checked for changes.
-
        *
        * @attribute folderRefresh
        * @type number
        * @default 0 (no refresh)
        */
       folderRefresh: 0,
+
+      /**
+       * The order in which files are sorted.
+       *
+       * @attribute sort
+       * @type string
+       * @default ""
+       */
+      sort: "",
+
+      /**
+       * The direction in which files are sorted.
+       *
+       * @attribute sortDirection
+       * @type string
+       * @default ""
+       */
+      sortDirection: "",
 
       /**
        * The URL target of the request.
@@ -126,12 +145,17 @@
       setUrl: function() {
         var baseUrl = "https://www.googleapis.com/storage/v1/b/risemedialibrary-" + encodeURIComponent(this.companyId) + "/o",
           delimiter = "?delimiter=" + encodeURIComponent("/"),
-          folder = "&prefix=" + encodeURIComponent(this.folder) + "/",
+          folder = "&prefix=" + encodeURIComponent(this.folder),
           fileName = encodeURIComponent(this.fileName),
           url = baseUrl;
 
         if (this.companyId) {
           if (this.folder) {
+            // Append a "/" at end of folder if necessary.
+            if (this.folder.slice(-1) !== "/") {
+              folder += "/";
+            }
+
             // Get a specific file in a specific folder.
             if (this.fileName) {
               url += delimiter + folder + fileName;
@@ -211,15 +235,46 @@
       },
 
       /**
+       * Sort files.
+       */
+      sortFiles: function(files) {
+        if (this.sort === "name" || this.sort === "date") {
+          files = _.sortBy(files, function(file) {
+            return file.sortBy;
+          });
+        }
+        else if (this.sort === "random") {
+          return _.shuffle(files);
+        }
+
+        // Direction
+        if (this.sortDirection) {
+          if (this.sortDirection === "asc") {
+            return files;
+          }
+          else if (this.sortDirection === "desc") {
+            return files.reverse();
+          }
+        }
+        else {
+          return files;
+        }
+      },
+
+      /**
        * Fired when a response is received from Storage.
        */
       handleStorageResponse: function(e, resp) {
         var self = this,
-          urls = [];
+          file = null,
+          files = [],
+          urls =[];
 
         // Multiple files
         if (resp && resp.response && resp.response.items) {
           resp.response.items.forEach(function(elem) {
+            file = {};
+
             // Check that this is not a folder.
             if (elem.name && (elem.name.slice(-1) !== "/")) {
               if (elem.mediaLink) {
@@ -235,14 +290,34 @@
                   }
                 }
 
+                // Sorting
+                if (self.sort) {
+                  if (self.sort === "name") {
+                    file.sortBy = elem.name;
+                  }
+                  else if (self.sort === "date") {
+                    file.sortBy = new Date(elem.updated).getTime();
+                  }
+                }
+
                 if (self.isCacheRunning) {
-                  urls.push("http://localhost:9494/?url=" + escape(elem.mediaLink));
+                  file.url = "http://localhost:9494/?url=" + escape(elem.mediaLink);
                 }
                 else {
-                  urls.push(elem.mediaLink);
+                  file.url = elem.mediaLink;
                 }
+
+                files.push(file);
               }
             }
+          });
+
+          if (this.sort && files.length > 0) {
+            files = this.sortFiles(files);
+          }
+
+          files.forEach(function(file) {
+            urls.push(file.url);
           });
         }
         // Single file.

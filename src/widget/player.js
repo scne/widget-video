@@ -40,6 +40,7 @@ RiseVision.Video.Player = function (data, companyId) {
   }
 
   function _onPlay() {
+    _initialPlay = false;
     _userPaused = false;
   }
 
@@ -58,7 +59,7 @@ RiseVision.Video.Player = function (data, companyId) {
       typeAttr = document.createAttribute("type");
 
     // set initial volume on <video>
-    _video.volume = data.video.volume/100;
+    _video.volume = data.video.volume / 100;
 
     // set the "type" attribute on <source>
     typeAttr.value = "video/webm";
@@ -79,7 +80,7 @@ RiseVision.Video.Player = function (data, companyId) {
 
     } else {
       // Rise Storage
-      storage.addEventListener("rise-storage-response", function(e) {
+      storage.addEventListener("rise-storage-response", function (e) {
         srcAttr.value = e.detail[0];
         source.setAttributeNode(srcAttr);
         _video.appendChild(fragment);
@@ -98,12 +99,9 @@ RiseVision.Video.Player = function (data, companyId) {
   }
 
   function play() {
+    _initialPlay = false;
     _viewerPaused = false;
     _video.play();
-
-    if (_initialPlay) {
-      _initialPlay = false;
-    }
   }
 
   function userPaused() {
