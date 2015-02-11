@@ -71,7 +71,9 @@ RiseVision.Video = (function (document, gadgets) {
   }
 
   function stop() {
-    // TODO: need a reset on on the player
+    // https://github.com/Rise-Vision/viewer/issues/30
+    // Have to call pause() due to Viewer issue
+    pause();
   }
 
   function videoEnded() {

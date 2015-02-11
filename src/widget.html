@@ -103,6 +103,10 @@
       background-size: contain;
     }
 
+    video::-webkit-media-controls-fullscreen-button {
+      display: none;
+    }
+
   </style>
 </head>
 <body>
@@ -112,7 +116,7 @@
 
   <div id="background"></div>
   <div id="videoContainer">
-    <video id="video" controls="controls"></video>
+    <video id="video" controls></video>
   </div>
 
   <!-- build:e2eMockData -->
