@@ -13,6 +13,16 @@ RiseVision.Video.Player = function (data, companyId) {
   /*
    * Private Methods
    */
+  function _getVideoFileType() {
+    var type = data.url.substr(data.url.lastIndexOf(".") + 1);
+
+    if (type === "ogv") {
+      type = "ogg";
+    }
+
+    return type;
+  }
+
   function _onLoadedData() {
     // at lease 1st frame of video has loaded
     _videoContainer.style.visibility = "visible";
@@ -62,7 +72,7 @@ RiseVision.Video.Player = function (data, companyId) {
     _video.volume = data.video.volume / 100;
 
     // set the "type" attribute on <source>
-    typeAttr.value = "video/webm";
+    typeAttr.value = "video/" + _getVideoFileType();
     source.setAttributeNode(typeAttr);
 
     // video events

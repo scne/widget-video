@@ -6,7 +6,7 @@ The Video Widget allows you to add a video directly into your Presentation. This
 
 Video Widget works in conjunction with [Rise Vision](http://www.risevision.com), the [digital signage management application](http://rva.risevision.com/) that runs on [Google Cloud](https://cloud.google.com).
 
-At this time Chrome is the only browser that this project and Rise Vision supports. Further to this, `.webm` is the only video file format that is supported by this Widget. 
+At this time Chrome is the only browser that this project and Rise Vision supports.
 
 ## Built With
 - [AngularJS](https://angularjs.org/)
