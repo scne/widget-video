@@ -25,15 +25,15 @@ RiseVision.Video = (function (document, gadgets) {
       true, true, true, true, true);
   }
 
-  /*
-   *  Public Methods
-   */
-  function backgroundReady() {
+  function _backgroundReady() {
     // create and initialize the Player instance
     _player = new RiseVision.Video.Player(_additionalParams, _companyId);
     _player.init();
   }
 
+  /*
+   *  Public Methods
+   */
   function pause() {
     _player.pause();
   }
@@ -66,8 +66,8 @@ RiseVision.Video = (function (document, gadgets) {
     document.getElementById("videoContainer").style.height = _prefs.getInt("rsH") + "px";
 
     // create and initialize the Background instance
-    _background = new RiseVision.Video.Background(_additionalParams, _companyId);
-    _background.init();
+    _background = new RiseVision.Common.Background(_additionalParams, _companyId);
+    _background.init(_backgroundReady);
   }
 
   function stop() {
@@ -81,7 +81,6 @@ RiseVision.Video = (function (document, gadgets) {
   }
 
   return {
-    "backgroundReady": backgroundReady,
     "pause": pause,
     "play": play,
     "setCompanyId": setCompanyId,
