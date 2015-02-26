@@ -25,7 +25,6 @@ RiseVision.Video = (function (document, gadgets) {
 
   var _prefs = null,
     _additionalParams = {},
-    _companyId = null,
     _background = null,
     _player = null;
 
@@ -44,7 +43,7 @@ RiseVision.Video = (function (document, gadgets) {
 
   function _backgroundReady() {
     // create and initialize the Player instance
-    _player = new RiseVision.Video.Player(_additionalParams, _companyId);
+    _player = new RiseVision.Video.Player(_additionalParams);
     _player.init();
   }
 
@@ -72,10 +71,6 @@ RiseVision.Video = (function (document, gadgets) {
     _ready();
   }
 
-  function setCompanyId(value) {
-    _companyId = value;
-  }
-
   function setAdditionalParams(params) {
     _prefs = new gadgets.Prefs();
     _additionalParams = params;
@@ -83,7 +78,7 @@ RiseVision.Video = (function (document, gadgets) {
     document.getElementById("videoContainer").style.height = _prefs.getInt("rsH") + "px";
 
     // create and initialize the Background instance
-    _background = new RiseVision.Common.Background(_additionalParams, _companyId);
+    _background = new RiseVision.Common.Background(_additionalParams);
     _background.init(_backgroundReady);
   }
 
@@ -100,7 +95,6 @@ RiseVision.Video = (function (document, gadgets) {
   return {
     "pause": pause,
     "play": play,
-    "setCompanyId": setCompanyId,
     "setAdditionalParams": setAdditionalParams,
     "playerReady": playerReady,
     "stop": stop,
@@ -112,7 +106,7 @@ RiseVision.Video = (function (document, gadgets) {
 var RiseVision = RiseVision || {};
 RiseVision.Common = RiseVision.Common || {};
 
-RiseVision.Common.Background = function (data, companyId) {
+RiseVision.Common.Background = function (data) {
   "use strict";
 
   var _callback = null,
@@ -165,7 +159,7 @@ RiseVision.Common.Background = function (data, companyId) {
 
             _storage.setAttribute("folder", data.backgroundStorage.folder);
             _storage.setAttribute("fileName", data.backgroundStorage.fileName);
-            _storage.setAttribute("companyId", companyId);
+            _storage.setAttribute("companyId", data.backgroundStorage.companyId);
             _storage.go();
           } else {
             console.log("Missing element with id value of 'backgroundStorage'");
@@ -203,7 +197,7 @@ RiseVision.Common.Background = function (data, companyId) {
 var RiseVision = RiseVision || {};
 RiseVision.Video = RiseVision.Video || {};
 
-RiseVision.Video.Player = function (data, companyId) {
+RiseVision.Video.Player = function (data) {
   "use strict";
 
   var _video = document.getElementById("video"),
@@ -300,7 +294,7 @@ RiseVision.Video.Player = function (data, companyId) {
 
       storage.setAttribute("folder", data.videoStorage.folder);
       storage.setAttribute("fileName", data.videoStorage.fileName);
-      storage.setAttribute("companyId", companyId);
+      storage.setAttribute("companyId", data.videoStorage.companyId);
       storage.go();
     }
   }
@@ -362,22 +356,13 @@ RiseVision.Video.Player = function (data, companyId) {
     }
   }
 
-  function companyId(name, value) {
-    if (name && name === "companyId") {
-      RiseVision.Video.setCompanyId(value);
-    }
-
-    gadgets.rpc.register("rsparam_set_" + id, additionalParams);
-    gadgets.rpc.call("", "rsparam_get", null, id, ["additionalParams"]);
-  }
-
   if (id && id !== "") {
     gadgets.rpc.register("rscmd_play_" + id, play);
     gadgets.rpc.register("rscmd_pause_" + id, pause);
     gadgets.rpc.register("rscmd_stop_" + id, stop);
-    gadgets.rpc.register("rsparam_set_" + id, companyId);
 
-    gadgets.rpc.call("", "rsparam_get", null, id, "companyId");
+    gadgets.rpc.register("rsparam_set_" + id, additionalParams);
+    gadgets.rpc.call("", "rsparam_get", null, id, ["additionalParams"]);
 
   }
 
