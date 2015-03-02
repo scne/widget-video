@@ -1,7 +1,7 @@
 var RiseVision = RiseVision || {};
 RiseVision.Video = RiseVision.Video || {};
 
-RiseVision.Video.Player = function (data, companyId) {
+RiseVision.Video.Player = function (data) {
   "use strict";
 
   var _video = document.getElementById("video"),
@@ -98,7 +98,7 @@ RiseVision.Video.Player = function (data, companyId) {
 
       storage.setAttribute("folder", data.videoStorage.folder);
       storage.setAttribute("fileName", data.videoStorage.fileName);
-      storage.setAttribute("companyId", companyId);
+      storage.setAttribute("companyId", data.videoStorage.companyId);
       storage.go();
     }
   }
