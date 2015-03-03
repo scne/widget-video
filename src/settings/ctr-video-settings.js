@@ -4,7 +4,7 @@ angular.module("risevision.widget.video.settings")
 
       $scope.$watch("settings.additionalParams.url", function (url) {
         if (typeof url !== "undefined" && url !== "") {
-          if ($scope.settingsForm.videoUrl.$valid ) {
+          if ($scope.settingsForm.videoUrl.$valid) {
             $scope.settings.additionalParams.videoStorage = commonSettings.getStorageUrlData(url);
           } else {
             $scope.settings.additionalParams.videoStorage = {};
@@ -14,7 +14,7 @@ angular.module("risevision.widget.video.settings")
 
       $scope.$watch("settings.additionalParams.background.image.url", function (url) {
         if (typeof url !== "undefined" && url !== "") {
-          if ($scope.settingsForm.background.$valid ) {
+          if ($scope.settingsForm.background.$valid) {
             $scope.settings.additionalParams.backgroundStorage = commonSettings.getStorageUrlData(url);
           } else {
             $scope.settings.additionalParams.backgroundStorage = {};

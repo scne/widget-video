@@ -45,8 +45,7 @@ body {
 }
 
 video {
-  max-width: 100%;
-  height: auto !important;
+  height: auto;
 }
 
 #videoContainer {
@@ -56,4 +55,12 @@ video {
 
 video::-webkit-media-controls-fullscreen-button {
   display: none;
+}
+
+.scale-to-fit {
+  width: 100%;
+}
+
+.no-scale {
+  max-width: 100%;
 }

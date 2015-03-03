@@ -151,8 +151,20 @@
       .pipe(gulp.dest("./src/"));
   });
 
+  gulp.task("html:e2e:widget:undefined", function () {
+    return gulp.src("./src/widget.html")
+      .pipe(htmlreplace({
+        e2egadgets: "../node_modules/widget-tester/mocks/gadget-mocks.js",
+        e2eMockData: "../test/data/undefined.js"
+      }))
+      .pipe(rename(function (path) {
+        path.basename += "-undefined-e2e";
+      }))
+      .pipe(gulp.dest("./src/"));
+  });
+
   gulp.task("html:e2e:widget", function (cb) {
-    runSequence("html:e2e:widget:url", "html:e2e:widget:storage", cb);
+    runSequence("html:e2e:widget:url", "html:e2e:widget:storage", "html:e2e:widget:undefined", cb);
   });
 
   gulp.task("e2e:server:widget", ["config", "html:e2e:widget"], factory.testServer());
@@ -160,7 +172,8 @@
   gulp.task("test:e2e:widget:run", ["webdriver_update"], factory.testE2EAngular({
       testFiles: [
         "test/e2e/widget-url.js",
-        "test/e2e/widget-storage.js"
+        "test/e2e/widget-storage.js",
+        "test/e2e/widget-undefined.js"
       ]}
   ));
 
