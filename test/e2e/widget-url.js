@@ -42,6 +42,9 @@
     });
 
     it("Should load and display video", function () {
+      // video controls should not be displayed
+      expect(element(by.id("video")).getAttribute("controls")).to.eventually.be.null;
+
       // scale to fit class should be applied
       expect(element(by.css("video.scale-to-fit")).isPresent()).to.eventually.be.true;
 

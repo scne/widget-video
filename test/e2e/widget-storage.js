@@ -29,14 +29,10 @@
         to.eventually.equal("background: rgba(100, 100, 100, 0);");
     });
 
-    // ******
-    // TODO: Turn following tests on if a workaround is in place for testing the usage of rise-storage
-    // ******
-
-    xit("Should display background image", function () {
+    it("Should display background image", function () {
       // background image
       expect(element(by.id("background")).getAttribute("style")).
-        to.eventually.equal("background-image: url(https://storage.googleapis.com/risemedialibrary-dd474bee-b237-46e3-aa20-98e975679773/1_chopsticks.jpg);");
+        to.eventually.equal("background-image: url(https://storage.googleapis.com/risemedialibrary-b428b4e8-c8b9-41d5-8a10-b4193c789443/Widgets%2Fmoon.jpg);");
 
       // scale to fit class should be applied
       expect(element(by.css("#background.scale-to-fit")).isPresent()).to.eventually.be.false;
@@ -45,7 +41,10 @@
       expect(element(by.css(".bottom-right")).isPresent()).to.eventually.be.true;
     });
 
-    xit("Should load and display video", function () {
+    it("Should load and display video", function () {
+      // video controls should be displayed
+      expect(element(by.id("video")).getAttribute("controls")).to.eventually.not.be.null;
+
       // scale to fit class should be applied
       expect(element(by.css("video.no-scale")).isPresent()).to.eventually.be.true;
 
@@ -54,7 +53,7 @@
 
       // source element should apply "src" attribute with correct value
       expect(element(by.css("source")).getAttribute("src")).
-        to.eventually.equal("https://storage.googleapis.com/risemedialibrary-dd474bee-b237-46e3-aa20-98e975679773/videos%2Fa_food_show.webm");
+        to.eventually.equal("https://storage.googleapis.com/risemedialibrary-b428b4e8-c8b9-41d5-8a10-b4193c789443/Widgets%2Fa_food_show.webm");
 
       // video container should be visible
       expect(element(by.id("videoContainer")).isPresent()).to.eventually.be.true;

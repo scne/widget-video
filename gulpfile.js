@@ -143,6 +143,7 @@
     return gulp.src("./src/widget.html")
       .pipe(htmlreplace({
         e2egadgets: "../node_modules/widget-tester/mocks/gadget-mocks.js",
+        e2eStorageMock: "../node_modules/widget-tester/mocks/rise-storage-mock.js",
         e2eMockData: "../test/data/storage.js"
       }))
       .pipe(rename(function (path) {
@@ -185,37 +186,6 @@
     runSequence("test:e2e:settings", "test:e2e:widget", cb);
   });
 
-  // ****** Unit Testing ***** //
-  gulp.task("test:unit:settings", factory.testUnitAngular(
-    {testFiles: [
-      "src/components/jquery/dist/jquery.js",
-      "src/components/q/q.js",
-      "src/components/angular/angular.js",
-      "src/components/angular-translate/angular-translate.js",
-      "src/components/angular-translate-loader-static-files/angular-translate-loader-static-files.js",
-      "src/components/angular-route/angular-route.js",
-      "src/components/angular-mocks/angular-mocks.js",
-      "node_modules/widget-tester/mocks/common-mock.js",
-      "src/components/bootstrap-sass-official/assets/javascripts/bootstrap.js",
-      "src/components/angular-bootstrap/ui-bootstrap-tpls.js",
-      "src/components/component-storage-selector/dist/storage-selector.js",
-      "src/components/widget-settings-ui-components/dist/js/**/*.js",
-      "src/components/widget-settings-ui-core/dist/*.js",
-      "src/components/bootstrap-form-components/dist/js/**/*.js",
-      "src/components/seiyria-bootstrap-slider/dist/bootstrap-slider.min.js",
-      "src/components/angular-bootstrap-slider/slider.js",
-      "src/components/rv-angular-bootstrap-colorpicker/js/bootstrap-colorpicker-module.js",
-      "src/config/test.js",
-      "src/settings/settings-app.js",
-      "src/settings/**/*.js",
-      "test/mock-data.js",
-      "test/unit/settings/**/*spec.js"]}
-  ));
-
-  gulp.task("test:unit", function(cb) {
-    runSequence("test:unit:settings", cb);
-  });
-
   // ***** Primary Tasks ***** //
   gulp.task("bower-clean-install", ["clean-bower"], function(cb){
     return bower().on("error", function(err) {
@@ -225,7 +195,7 @@
   });
 
   gulp.task("test", function(cb) {
-    runSequence("test:unit", "test:e2e", "test:metrics", cb);
+    runSequence("test:e2e", "test:metrics", cb);
   });
 
   gulp.task("build", function (cb) {

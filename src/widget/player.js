@@ -6,13 +6,28 @@ RiseVision.Video.Player = function (data) {
 
   var _video = document.getElementById("video"),
     _videoContainer = document.getElementById("videoContainer"),
+    _storage = document.getElementById("videoStorage"),
     _initialPlay = true,
     _userPaused = false,
-    _viewerPaused = false;
+    _viewerPaused = false,
+    _srcAttr, _fragment, _source;
 
   /*
    * Private Methods
    */
+  function _storageResponse(e) {
+    _storage.removeEventListener("rise-storage-response", _storageResponse);
+
+    if (Array.isArray(e.detail)) {
+      _srcAttr.value = e.detail[0];
+    } else {
+      _srcAttr.value = e.detail;
+    }
+
+    _source.setAttributeNode(_srcAttr);
+    _video.appendChild(_fragment);
+  }
+
   function _getVideoFileType() {
     var type = data.url.substr(data.url.lastIndexOf(".") + 1);
 
@@ -62,12 +77,18 @@ RiseVision.Video.Player = function (data) {
   }
 
   function init() {
-    var storage = document.getElementById("videoStorage"),
-      fragment = document.createDocumentFragment(),
-      source = fragment.appendChild(document.createElement("source")),
-      srcAttr = document.createAttribute("src"),
-      typeAttr = document.createAttribute("type");
+    var typeAttr = document.createAttribute("type");
 
+    _fragment = document.createDocumentFragment();
+    _source = _fragment.appendChild(document.createElement("source"));
+    _srcAttr = document.createAttribute("src");
+
+    // use default controls if not set to autoplay
+    if (!data.video.autoplay) {
+      _video.setAttribute("controls", "");
+    }
+
+    // set appropriate sizing class based on scaleToFit value
     _video.className = data.video.scaleToFit ? _video.className + " scale-to-fit"
       : _video.className + " no-scale";
 
@@ -76,7 +97,7 @@ RiseVision.Video.Player = function (data) {
 
     // set the "type" attribute on <source>
     typeAttr.value = "video/" + _getVideoFileType();
-    source.setAttributeNode(typeAttr);
+    _source.setAttributeNode(typeAttr);
 
     // video events
     _video.addEventListener("loadeddata", _onLoadedData, false);
@@ -87,22 +108,18 @@ RiseVision.Video.Player = function (data) {
 
     if (Object.keys(data.videoStorage).length === 0) {
       // Non storage URL
-      srcAttr.value = data.url;
-      source.setAttributeNode(srcAttr);
-      _video.appendChild(fragment);
+      _srcAttr.value = data.url;
+      _source.setAttributeNode(_srcAttr);
+      _video.appendChild(_fragment);
 
     } else {
       // Rise Storage
-      storage.addEventListener("rise-storage-response", function (e) {
-        srcAttr.value = e.detail[0];
-        source.setAttributeNode(srcAttr);
-        _video.appendChild(fragment);
-      });
+      _storage.addEventListener("rise-storage-response", _storageResponse);
 
-      storage.setAttribute("folder", data.videoStorage.folder);
-      storage.setAttribute("fileName", data.videoStorage.fileName);
-      storage.setAttribute("companyId", data.videoStorage.companyId);
-      storage.go();
+      _storage.setAttribute("folder", data.videoStorage.folder);
+      _storage.setAttribute("fileName", data.videoStorage.fileName);
+      _storage.setAttribute("companyId", data.videoStorage.companyId);
+      _storage.go();
     }
   }
 
