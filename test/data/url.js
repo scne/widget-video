@@ -9,7 +9,7 @@
       "url": "https://s3.amazonaws.com/risecontentfiles/tests/a_RFID.webm",
       "videoStorage": {},
       "video": {
-        "autoplay":true,
+        "autoplay":false,
         "scaleToFit":true,
         "volume":50
       },
