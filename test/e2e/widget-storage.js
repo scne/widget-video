@@ -39,13 +39,16 @@
         to.eventually.equal("background-image: url(https://storage.googleapis.com/risemedialibrary-dd474bee-b237-46e3-aa20-98e975679773/1_chopsticks.jpg);");
 
       // scale to fit class should be applied
-      expect(element(by.css(".scale-to-fit")).isPresent()).to.eventually.be.false;
+      expect(element(by.css("#background.scale-to-fit")).isPresent()).to.eventually.be.false;
 
       // correct positioning class
       expect(element(by.css(".bottom-right")).isPresent()).to.eventually.be.true;
     });
 
     xit("Should load and display video", function () {
+      // scale to fit class should be applied
+      expect(element(by.css("video.no-scale")).isPresent()).to.eventually.be.true;
+
       // source element should exist
       expect(element(by.tagName("source")).isPresent()).to.eventually.be.true;
 

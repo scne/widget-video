@@ -264,6 +264,9 @@ RiseVision.Video.Player = function (data) {
       srcAttr = document.createAttribute("src"),
       typeAttr = document.createAttribute("type");
 
+    _video.className = data.video.scaleToFit ? _video.className + " scale-to-fit"
+      : _video.className + " no-scale";
+
     // set initial volume on <video>
     _video.volume = data.video.volume / 100;
 

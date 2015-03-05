@@ -10,15 +10,15 @@
       "videoStorage": {},
       "video": {
         "autoplay":true,
-        "scaleToFit":true,
+        // ** scaleToFit **
         "volume":50
       },
       "background": {
-        "color": "rgba(145,145,145,0)",
-        "useImage": true,
+        "color": "rgba(255,255,255,0)",
+        "useImage": false,
         "image": {
-          "url": "http://s3.amazonaws.com/rise-common/images/logo-small.png",
-          "position": "middle-center",
+          "url": "",
+          "position": "top-left",
           "scale": true
         }
       },

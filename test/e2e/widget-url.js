@@ -35,13 +35,16 @@
         to.eventually.equal("background-image: url(http://s3.amazonaws.com/rise-common/images/logo-small.png);");
 
       // scale to fit class should be applied
-      expect(element(by.css(".scale-to-fit")).isPresent()).to.eventually.be.true;
+      expect(element(by.css("#background.scale-to-fit")).isPresent()).to.eventually.be.true;
 
       // correct positioning class
       expect(element(by.css(".middle-center")).isPresent()).to.eventually.be.true;
     });
 
     it("Should load and display video", function () {
+      // scale to fit class should be applied
+      expect(element(by.css("video.scale-to-fit")).isPresent()).to.eventually.be.true;
+
       // source element should exist
       expect(element(by.tagName("source")).isPresent()).to.eventually.be.true;
 

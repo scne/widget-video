@@ -118,6 +118,7 @@
           "videoStorage": {},
           "video": {
             "autoplay":false,
+            "scaleToFit":true,
             "volume":50
           },
           "background": {

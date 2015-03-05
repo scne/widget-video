@@ -13,6 +13,7 @@
       },
       "video": {
         "autoplay":false,
+        "scaleToFit":false,
         "volume":75
       },
       "background": {
