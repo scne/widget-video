@@ -6,9 +6,9 @@
   window.gadget.settings = {
     "params": {},
     "additionalParams": {
-      "url": "https://storage.googleapis.com/risemedialibrary-dd474bee-b237-46e3-aa20-98e975679773/videos%2Fa_food_show.webm",
+      "url": "https://storage.googleapis.com/risemedialibrary-b428b4e8-c8b9-41d5-8a10-b4193c789443/Widgets%2Fa_food_show.webm",
       "videoStorage": {
-        "folder": "videos",
+        "folder": "Widgets/",
         "fileName": "a_food_show.webm"
       },
       "video": {
@@ -20,14 +20,14 @@
         "color": "rgba(100,100,100,0)",
         "useImage": true,
         "image": {
-          "url": "https://storage.googleapis.com/risemedialibrary-dd474bee-b237-46e3-aa20-98e975679773/1_chopsticks.jpg",
+          "url": "https://storage.googleapis.com/risemedialibrary-b428b4e8-c8b9-41d5-8a10-b4193c789443/Widgets%2Fmoon.jpg",
           "position": "bottom-right",
           "scale": false
         }
       },
       "backgroundStorage": {
-        "folder": "",
-        "fileName": "1_chopsticks.jpg"
+        "folder": "Widgets/",
+        "fileName": "moon.jpg"
       }
     }
   };
