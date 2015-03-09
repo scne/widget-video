@@ -112,13 +112,28 @@ RiseVision.Common.Background = function (data) {
   var _callback = null,
     _ready = false,
     _background = null,
-    _storage = null;
+    _storage = null,
+    _refreshDuration = 900000, // 15 minutes
+    _isStorageFile = false,
+    _separator = "";
 
   /*
    * Private Methods
    */
+  function _refreshTimer() {
+    setTimeout(function backgroundRefresh() {
+      _background.style.backgroundImage = "url(" + data.background.image.url + _separator + "cb=" + new Date().getTime() + ")";
+      _refreshTimer();
+    }, _refreshDuration);
+  }
+
   function _backgroundReady() {
     _ready = true;
+
+    if (data.background.useImage && !_isStorageFile) {
+      // start the refresh poll for non-storage background image
+      _refreshTimer();
+    }
 
     if (_callback && typeof _callback === "function") {
       _callback();
@@ -137,6 +152,8 @@ RiseVision.Common.Background = function (data) {
   }
 
   function _configure() {
+    var str;
+
     _background = document.getElementById("background");
     _storage = document.getElementById("backgroundStorage");
 
@@ -149,7 +166,14 @@ RiseVision.Common.Background = function (data) {
         _background.className = data.background.image.scale ? _background.className + " scale-to-fit"
           : _background.className;
 
-        if (Object.keys(data.backgroundStorage).length === 0) {
+        _isStorageFile = (Object.keys(data.backgroundStorage).length !== 0);
+
+        if (!_isStorageFile) {
+          str = data.background.image.url.split("?");
+
+          // store this for the refresh timer
+          _separator = (str.length === 1) ? "?" : "&";
+
           _background.style.backgroundImage = "url(" + data.background.image.url + ")";
           _backgroundReady();
         } else {
