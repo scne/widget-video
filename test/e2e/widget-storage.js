@@ -43,7 +43,7 @@
 
     it("Should load and display video", function () {
       // video controls should be displayed
-      expect(element(by.id("video")).getAttribute("controls")).to.eventually.not.be.null;
+      expect(element(by.id("video")).getAttribute("controls")).to.eventually.be.null;
 
       // scale to fit class should be applied
       expect(element(by.css("video.no-scale")).isPresent()).to.eventually.be.true;

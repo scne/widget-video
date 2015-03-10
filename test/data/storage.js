@@ -12,7 +12,7 @@
         "fileName": "a_food_show.webm"
       },
       "video": {
-        "autoplay":false,
+        "autoplay":true,
         "scaleToFit":false,
         "volume":75
       },
