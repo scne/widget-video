@@ -31,14 +31,6 @@
       expect(element(by.css("button#save")).isPresent()).to.eventually.be.true;
       expect(element(by.css("button#cancel")).isPresent()).to.eventually.be.true;
 
-      // Video Setting
-      expect(element(by.css("#videoSetting .slider")).isPresent()).to.eventually.be.true;
-
-      // Background Image Setting
-      expect(element(by.css("#background input[colorpicker]")).isPresent()).to.eventually.be.true;
-      expect(element(by.css("#background .color-wheel")).isPresent()).to.eventually.be.true;
-
-
     });
 
     it("Should correctly load default settings", function () {
@@ -82,61 +74,22 @@
       expect(element(by.css("form[name='settingsForm'].ng-invalid")).isPresent()).to.eventually.be.false;
     });
 
-    it("Should be invalid form and Save button disabled due to invalid background image URL", function () {
-      element(by.css("#videoUrl input[name='url']")).sendKeys(validVideoUrl);
-
-      element(by.css("#background input[name='choice']")).click();
-
-      element(by.css("#background input[name='url']")).sendKeys(invalidImageUrl);
-
-      // save button should be disabled
-      expect(element(by.css("button#save[disabled=disabled")).isPresent()).to.eventually.be.true;
-
-      // form should be invalid due to incorrect file format
-      expect(element(by.css("form[name='settingsForm'].ng-invalid")).isPresent()).to.eventually.be.true;
-    });
-
-    it("Should be valid form and Save button enabled due to valid background image URL", function () {
-      element(by.css("#videoUrl input[name='url']")).sendKeys(validVideoUrl);
-
-      element(by.css("#background input[name='choice']")).click();
-
-      element(by.css("#background input[name='url']")).sendKeys(validImageUrl);
-
-      // save button should be enabled
-      expect(element(by.css("button#save[disabled=disabled")).isPresent()).to.eventually.be.false;
-
-      // form should be valid due to valid URL and valid format
-      expect(element(by.css("form[name='settingsForm'].ng-invalid")).isPresent()).to.eventually.be.false;
-    });
-
     it("Should correctly save settings", function (done) {
       var settings = {
         params: {},
         additionalParams: {
           "url": validVideoUrl,
-          "videoStorage": {},
+          "storage": {},
           "video": {
-            "autoplay":false,
-            "scaleToFit":true,
-            "volume":50
-          },
-          "background": {
-            "color": "rgba(255,255,255,0)",
-            "useImage": false,
-            "image": {
-              "url": "",
-              "position": "top-left",
-              "scale": true
-            }
-          },
-          "backgroundStorage": {}
+            scaleToFit: true,
+            volume: 50,
+            controls: true,
+            autoplay: true
+          }
         }
       };
 
       element(by.css("#videoUrl input[name='url']")).sendKeys(validVideoUrl);
-
-      element(by.css("#videoSetting input[name='video-autoplay']")).click();
 
       element(by.id("save")).click();
 

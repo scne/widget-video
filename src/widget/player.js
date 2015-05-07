@@ -24,10 +24,8 @@ RiseVision.Video.Player = function (data) {
   function _storageResponse(e) {
     _storage.removeEventListener("rise-storage-response", _storageResponse);
 
-    if (Array.isArray(e.detail)) {
-      _srcAttr.value = e.detail[0];
-    } else {
-      _srcAttr.value = e.detail;
+    if (e.detail && e.detail.files && e.detail.files.length > 0) {
+      _srcAttr.value = e.detail.files[0].url;
     }
 
     _source.setAttributeNode(_srcAttr);
@@ -172,7 +170,7 @@ RiseVision.Video.Player = function (data) {
     _video.addEventListener("pause", _onPause, false);
     _video.addEventListener("play", _onPlay, false);
 
-    _isStorageFile = (Object.keys(data.videoStorage).length !== 0);
+    _isStorageFile = (Object.keys(data.storage).length !== 0);
 
     if (!_isStorageFile) {
       str = data.url.split("?");
@@ -189,9 +187,9 @@ RiseVision.Video.Player = function (data) {
       // Rise Storage
       _storage.addEventListener("rise-storage-response", _storageResponse);
 
-      _storage.setAttribute("folder", data.videoStorage.folder);
-      _storage.setAttribute("fileName", data.videoStorage.fileName);
-      _storage.setAttribute("companyId", data.videoStorage.companyId);
+      _storage.setAttribute("folder", data.storage.folder);
+      _storage.setAttribute("fileName", data.storage.fileName);
+      _storage.setAttribute("companyId", data.storage.companyId);
       _storage.go();
     }
   }

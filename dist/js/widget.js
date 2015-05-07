@@ -7,11 +7,8 @@ if (typeof config === "undefined") {
 
   if (typeof angular !== "undefined") {
     angular.module("risevision.common.i18n.config", [])
-      .constant("LOCALES_PREFIX", "components/rv-common-i18n/dist/locales/translation_")
+      .constant("LOCALES_PREFIX", "locales/translation_")
       .constant("LOCALES_SUFIX", ".json");
-
-    angular.module("risevision.widget.common.storage-selector.config")
-      .value("STORAGE_MODAL", "https://storage-stage.risevision.com/rva-test/dist/storage-modal.html#/files/");
   }
 }
 
@@ -25,7 +22,6 @@ RiseVision.Video = (function (document, gadgets) {
 
   var _prefs = null,
     _additionalParams = {},
-    _background = null,
     _player = null;
 
   /*
@@ -39,12 +35,6 @@ RiseVision.Video = (function (document, gadgets) {
   function _ready() {
     gadgets.rpc.call("", "rsevent_ready", null, _prefs.getString("id"),
       true, true, true, true, true);
-  }
-
-  function _backgroundReady() {
-    // create and initialize the Player instance
-    _player = new RiseVision.Video.Player(_additionalParams);
-    _player.init();
   }
 
   /*
@@ -77,9 +67,9 @@ RiseVision.Video = (function (document, gadgets) {
 
     document.getElementById("videoContainer").style.height = _prefs.getInt("rsH") + "px";
 
-    // create and initialize the Background instance
-    _background = new RiseVision.Common.Background(_additionalParams);
-    _background.init(_backgroundReady);
+    // create and initialize the Player instance
+    _player = new RiseVision.Video.Player(_additionalParams);
+    _player.init();
   }
 
   function stop() {
@@ -102,121 +92,6 @@ RiseVision.Video = (function (document, gadgets) {
   };
 
 })(document, gadgets);
-
-var RiseVision = RiseVision || {};
-RiseVision.Common = RiseVision.Common || {};
-
-RiseVision.Common.Background = function (data) {
-  "use strict";
-
-  var _callback = null,
-    _ready = false,
-    _background = null,
-    _storage = null,
-    _refreshDuration = 900000, // 15 minutes
-    _isStorageFile = false,
-    _separator = "";
-
-  /*
-   * Private Methods
-   */
-  function _refreshTimer() {
-    setTimeout(function backgroundRefresh() {
-      _background.style.backgroundImage = "url(" + data.background.image.url + _separator + "cb=" + new Date().getTime() + ")";
-      _refreshTimer();
-    }, _refreshDuration);
-  }
-
-  function _backgroundReady() {
-    _ready = true;
-
-    if (data.background.useImage && !_isStorageFile) {
-      // start the refresh poll for non-storage background image
-      _refreshTimer();
-    }
-
-    if (_callback && typeof _callback === "function") {
-      _callback();
-    }
-  }
-
-  function _storageResponse(e) {
-    _storage.removeEventListener("rise-storage-response", _storageResponse);
-
-    if (Array.isArray(e.detail)) {
-      _background.style.backgroundImage = "url(" + e.detail[0] + ")";
-    } else {
-      _background.style.backgroundImage = "url(" + e.detail + ")";
-    }
-    _backgroundReady();
-  }
-
-  function _configure() {
-    var str;
-
-    _background = document.getElementById("background");
-    _storage = document.getElementById("backgroundStorage");
-
-    // set the document background
-    document.body.style.background = data.background.color;
-
-    if (_background) {
-      if (data.background.useImage) {
-        _background.className = data.background.image.position;
-        _background.className = data.background.image.scale ? _background.className + " scale-to-fit"
-          : _background.className;
-
-        _isStorageFile = (Object.keys(data.backgroundStorage).length !== 0);
-
-        if (!_isStorageFile) {
-          str = data.background.image.url.split("?");
-
-          // store this for the refresh timer
-          _separator = (str.length === 1) ? "?" : "&";
-
-          _background.style.backgroundImage = "url(" + data.background.image.url + ")";
-          _backgroundReady();
-        } else {
-          if (_storage) {
-            // Rise Storage
-            _storage.addEventListener("rise-storage-response", _storageResponse);
-
-            _storage.setAttribute("folder", data.backgroundStorage.folder);
-            _storage.setAttribute("fileName", data.backgroundStorage.fileName);
-            _storage.setAttribute("companyId", data.backgroundStorage.companyId);
-            _storage.go();
-          } else {
-            console.log("Missing element with id value of 'backgroundStorage'");
-          }
-        }
-      } else {
-        _backgroundReady();
-      }
-    } else {
-      console.log("Missing element with id value of 'background'");
-    }
-  }
-
-  /*
-   *  Public Methods
-   */
-  function init(cb) {
-    if (!_ready) {
-      if (cb) {
-        _callback = cb;
-      }
-
-      _configure();
-
-    } else if (cb && typeof cb === "function") {
-      cb();
-    }
-  }
-
-  return {
-    "init": init
-  };
-};
 
 var RiseVision = RiseVision || {};
 RiseVision.Video = RiseVision.Video || {};
@@ -244,10 +119,8 @@ RiseVision.Video.Player = function (data) {
   function _storageResponse(e) {
     _storage.removeEventListener("rise-storage-response", _storageResponse);
 
-    if (Array.isArray(e.detail)) {
-      _srcAttr.value = e.detail[0];
-    } else {
-      _srcAttr.value = e.detail;
+    if (e.detail && e.detail.files && e.detail.files.length > 0) {
+      _srcAttr.value = e.detail.files[0].url;
     }
 
     _source.setAttributeNode(_srcAttr);
@@ -392,7 +265,7 @@ RiseVision.Video.Player = function (data) {
     _video.addEventListener("pause", _onPause, false);
     _video.addEventListener("play", _onPlay, false);
 
-    _isStorageFile = (Object.keys(data.videoStorage).length !== 0);
+    _isStorageFile = (Object.keys(data.storage).length !== 0);
 
     if (!_isStorageFile) {
       str = data.url.split("?");
@@ -409,9 +282,9 @@ RiseVision.Video.Player = function (data) {
       // Rise Storage
       _storage.addEventListener("rise-storage-response", _storageResponse);
 
-      _storage.setAttribute("folder", data.videoStorage.folder);
-      _storage.setAttribute("fileName", data.videoStorage.fileName);
-      _storage.setAttribute("companyId", data.videoStorage.companyId);
+      _storage.setAttribute("folder", data.storage.folder);
+      _storage.setAttribute("fileName", data.storage.fileName);
+      _storage.setAttribute("companyId", data.storage.companyId);
       _storage.go();
     }
   }
