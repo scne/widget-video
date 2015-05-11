@@ -36,7 +36,8 @@
           <form role="form" name="settingsForm">
             <!-- URL -->
             <url-field id="videoUrl" name="videoUrl" url="settings.additionalParams.url"
-                       company-id="b428b4e8-c8b9-41d5-8a10-b4193c789443"
+                       company-id="{{settings.params.companyId}}"
+                       storage-type="single-file"
                        file-type="video"
                        ng-model="videourlentry" valid></url-field>
             <!-- Video -->

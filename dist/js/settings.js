@@ -28158,7 +28158,7 @@ app.run(["$templateCache", function($templateCache) {
 /* exported config */
 if (typeof config === "undefined") {
   var config = {
-    // variables go here
+    SKIN: "skin/RVSkin.xml"
   };
 
   if (typeof angular !== "undefined") {

@@ -23,7 +23,8 @@
 
   var appJSFiles = [
     "src/**/*.js",
-    "!./src/components/**/*"
+    "!./src/components/**/*",
+    "!./src/widget/player.js"
     ];
 
   gulp.task("clean-bower", function(cb){
@@ -57,7 +58,7 @@
   });
 
   gulp.task("source", ["lint"], function () {
-    return gulp.src(['./src/settings.html', './src/widget.html'])
+    return gulp.src(['./src/settings.html', './src/widget.html', './src/player.html'])
       .pipe(usemin({
         css: [minifyCSS()],
         js: [sourcemaps.init(), uglify(), sourcemaps.write()]
@@ -66,7 +67,7 @@
   });
 
   gulp.task("unminify", function () {
-    return gulp.src(['./src/settings.html', './src/widget.html'])
+    return gulp.src(['./src/settings.html', './src/widget.html', './src/player.html'])
       .pipe(usemin({
         css: [rename(function (path) {
           path.basename = path.basename.substring(0, path.basename.indexOf(".min"))
@@ -87,6 +88,11 @@
       .pipe(gulp.dest("dist/img"));
   });
 
+  gulp.task("skin", function() {
+    gulp.src("src/components/widget-common/dist/assets/video/RVSkin.xml")
+      .pipe(gulp.dest("dist/skin"));
+  });
+
   gulp.task("i18n", function(cb) {
     return gulp.src(["src/components/rv-common-i18n/dist/locales/**/*"])
       .pipe(gulp.dest("dist/locales"));
@@ -96,7 +102,7 @@
     return gulp.src([
       "src/components/webcomponentsjs/webcomponents*.js",
       "src/components/web-component-rise-storage/rise-storage.html",
-      "src/components/polymer/**/*.*{html,js}",
+      "src/components/polymer/*.*{html,js}",
       "src/components/core-ajax/*.*{html,js}",
       "src/components/underscore/*.js"
     ], {base: "./src/"})
@@ -139,7 +145,7 @@
   });
 
   gulp.task("build", function (cb) {
-    runSequence(["clean", "config"], ["source", "fonts", "images", "i18n", "rise-storage"], ["unminify"], cb);
+    runSequence(["clean", "config"], ["source", "fonts", "images", "i18n", "rise-storage", "skin"], ["unminify"], cb);
   });
 
   gulp.task("default", [], function() {

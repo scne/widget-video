@@ -2,7 +2,7 @@
 /* exported config */
 if (typeof config === "undefined") {
   var config = {
-    // variables go here
+    SKIN: "skin/RVSkin.xml"
   };
 
   if (typeof angular !== "undefined") {
@@ -12,17 +12,26 @@ if (typeof config === "undefined") {
   }
 }
 
-/* global gadgets */
+/* global gadgets, config */
 
 var RiseVision = RiseVision || {};
 RiseVision.Video = {};
 
-RiseVision.Video = (function (document, gadgets) {
+RiseVision.Video = (function (gadgets) {
   "use strict";
 
+  var _additionalParams;
+
   var _prefs = null,
-    _additionalParams = {},
-    _player = null;
+    _storage = null,
+    _frameController = null;
+
+  var _initialized = false,
+    _playbackError = false;
+
+  var _currentFile, _currentFrame;
+
+  var _frameCount = 0;
 
   /*
    *  Private Methods
@@ -37,285 +46,330 @@ RiseVision.Video = (function (document, gadgets) {
       true, true, true, true, true);
   }
 
+  function _refreshFrame(frameIndex) {
+    _frameController.remove(frameIndex, function () {
+      _frameController.add(frameIndex);
+      _frameController.hide(frameIndex);
+      _frameController.createFramePlayer(frameIndex, _additionalParams, _currentFile, config.SKIN, "player.html");
+    });
+  }
+
   /*
    *  Public Methods
    */
-  function pause() {
-    _player.pause();
+  function onStorageInit(url) {
+    _currentFile = url;
+
+    _frameController = new RiseVision.Common.Video.FrameController();
+
+    // add the first frame and create its player
+    _frameController.add(0);
+    _currentFrame = 0;
+    _frameCount = 1;
+    _frameController.createFramePlayer(0, _additionalParams, _currentFile, config.SKIN, "player.html");
   }
 
-  function play() {
-    if (_player.isInitialPlay()) {
-      // "autoplay" was selected in settings
-      if (_additionalParams.video.autoplay) {
-        _player.play();
-      }
-    } else {
-      if (!_player.userPaused()) {
-        _player.play();
+  function onStorageRefresh(url) {
+    var currentFrameObj = _frameController.getFrameObject(_currentFrame),
+      hiddenFrameIndex = (_currentFrame === 0) ? 1 : 0,
+      currentFrameData;
+
+    _currentFile = url;
+
+    // It is best to let refreshing the frame playlist happen in the normal cycle of frame swapping (playlist completion)
+    // Below is the only criteria for safely forcing a refresh of hidden frame while Widget is in a "play" or "pause" state
+
+    // Widget is in a state of "play" or "pause" and playlist has not completed. A hidden frame definitely exists
+    if (currentFrameObj) {
+      // Only if there are no video controls.
+      // User interacting with controls, particularly seeking the video to end, would cause issues
+      if (!_additionalParams.video.controls) {
+        currentFrameData = currentFrameObj.getPlaybackData();
+
+        // To be safe, only refresh the frame that's currently hidden if at least 15 seconds are left of video
+        if ((currentFrameData.duration - currentFrameData.position) >= 15) {
+          _refreshFrame(hiddenFrameIndex);
+        }
       }
     }
   }
 
-  function playerReady() {
-    _ready();
+  function pause() {
+    var frameObj = _frameController.getFrameObject(_currentFrame);
+
+    if (frameObj) {
+      frameObj.pause();
+    }
   }
 
-  function setAdditionalParams(params) {
-    _prefs = new gadgets.Prefs();
-    _additionalParams = params;
+  function play() {
+    var frameObj = _frameController.getFrameObject(_currentFrame);
 
-    document.getElementById("videoContainer").style.height = _prefs.getInt("rsH") + "px";
+    if (!_playbackError) {
+      if (frameObj) {
+        frameObj.play();
+      } else {
+        // set current frame to be the one visible
+        _currentFrame = (_currentFrame === 0) ? 1 : 0;
 
-    // create and initialize the Player instance
-    _player = new RiseVision.Video.Player(_additionalParams);
-    _player.init();
+        // play the current frame video
+        frameObj = _frameController.getFrameObject(_currentFrame);
+        frameObj.play();
+
+        // re-add previously removed frame and create the player, but hide visibility
+        _frameController.add(((_currentFrame === 0) ? 1 : 0));
+        _frameController.hide(((_currentFrame === 0) ? 1 : 0));
+        _frameController.createFramePlayer(((_currentFrame === 0) ? 1 : 0), _additionalParams, _currentFile, config.SKIN, "player.html");
+      }
+    } else {
+      // This flag only got set upon a refresh of hidden frame and there was an error in setup or video
+      // Send Viewer "done"
+      _done();
+    }
+  }
+
+  function playerEnded() {
+    if (_playbackError) {
+      // This flag only gets set upon a refresh of hidden frame and there was an error in setup or video
+      _frameController.remove(_currentFrame);
+      _frameController.remove((_currentFrame === 0) ? 1 : 0);
+
+      _done();
+
+    } else {
+      _frameController.show((_currentFrame === 0) ? 1 : 0);
+      _frameController.remove(_currentFrame, function () {
+        _done();
+      });
+    }
+
+  }
+
+  function playerReady() {
+    if (!_initialized) {
+      if (_frameCount === 2) {
+        // both frames have been created and loaded, can notify Viewer widget is ready
+        _initialized = true;
+        _ready();
+      } else {
+        // first frame player was successful and ready, create the second one but hide it
+        _frameController.add(1);
+        _frameController.hide(1);
+        _frameCount = 2;
+        _frameController.createFramePlayer(1, _additionalParams, _currentFile, config.SKIN, "player.html");
+      }
+    }
+  }
+
+  function setAdditionalParams(names, values) {
+    if (Array.isArray(names) && names.length > 0 && names[0] === "additionalParams") {
+      if (Array.isArray(values) && values.length > 0) {
+        _additionalParams = JSON.parse(values[0]);
+        _prefs = new gadgets.Prefs();
+
+        document.getElementById("videoContainer").style.height = _prefs.getInt("rsH") + "px";
+
+        _additionalParams.width = _prefs.getInt("rsW");
+        _additionalParams.height = _prefs.getInt("rsH");
+
+        // create and initialize the Storage module instance
+        _storage = new RiseVision.Video.Storage(_additionalParams);
+        _storage.init();
+      }
+    }
+  }
+
+  function playerError(error) {
+    console.debug("video-folder::playerError()", error);
+
+    if (!_initialized) {
+      // Widget has not sent "ready" yet and there is an error (setup or playback of video)
+      _frameController.remove(_currentFrame);
+
+      // do nothing more, ensure "ready" is not sent to Viewer so that this widget can be skipped
+
+    } else {
+      // This only happens in the event of a refresh. New file caused an error in setup or video has an issue
+      // The error event will be coming from the currently hidden frame when it got recreated with a new file to use
+      _playbackError = true;
+    }
+
   }
 
   function stop() {
-    // https://github.com/Rise-Vision/viewer/issues/30
-    // Have to call pause() due to Viewer issue
     pause();
   }
 
-  function videoEnded() {
-    _done();
-  }
-
   return {
+    "onStorageInit": onStorageInit,
+    "onStorageRefresh": onStorageRefresh,
     "pause": pause,
     "play": play,
     "setAdditionalParams": setAdditionalParams,
+    "playerEnded": playerEnded,
     "playerReady": playerReady,
-    "stop": stop,
-    "videoEnded": videoEnded
+    "playerError": playerError,
+    "stop": stop
   };
 
-})(document, gadgets);
+})(gadgets);
 
 var RiseVision = RiseVision || {};
 RiseVision.Video = RiseVision.Video || {};
 
-RiseVision.Video.Player = function (data) {
+RiseVision.Video.Storage = function (data) {
   "use strict";
 
-  var _video = document.getElementById("video"),
-    _videoContainer = document.getElementById("videoContainer"),
-    _storage = document.getElementById("videoStorage"),
-    _initialPlay = true,
-    _userPaused = false,
-    _viewerPaused = false,
-    _refreshDuration = 900000, // 15 minutes
-    _isStorageFile = false,
-    _refreshWaiting = false,
-    _notifiedReady = false,
-    _canPlay = false,
-    _separator = "",
-    _srcAttr, _fragment, _source;
-
-  /*
-   * Private Methods
-   */
-  function _storageResponse(e) {
-    _storage.removeEventListener("rise-storage-response", _storageResponse);
-
-    if (e.detail && e.detail.files && e.detail.files.length > 0) {
-      _srcAttr.value = e.detail.files[0].url;
-    }
-
-    _source.setAttributeNode(_srcAttr);
-    _video.appendChild(_fragment);
-  }
-
-  function _getVideoFileType() {
-    var type = data.url.substr(data.url.lastIndexOf(".") + 1);
-
-    if (type === "ogv") {
-      type = "ogg";
-    }
-
-    return type;
-  }
-
-  function _onLoadedData() {
-    // at least 1st frame of video has loaded
-    _videoContainer.style.visibility = "visible";
-    // remove this listener
-    _video.removeEventListener("loadeddata", _onLoadedData, false);
-  }
-
-  function _onCanPlay() {
-    // enough data has loaded to safely play without interruption
-    _canPlay = true;
-
-    // only call playerReady() once
-    if (!_notifiedReady) {
-      RiseVision.Video.playerReady();
-      _notifiedReady = true;
-    }
-
-    // remove this listener
-    _video.removeEventListener("canplay", _onCanPlay, false);
-
-    if (!_isStorageFile) {
-      // call the refresh timer function for a non-storage video
-      _refreshTimer(_refreshDuration);
-    }
-  }
-
-  function _onEnded() {
-    // a "pause" event is always fired before "ended" event, ensure _userPaused is false
-    _userPaused = false;
-
-    if (!_isStorageFile && _refreshWaiting) {
-      _refreshWaiting = false;
-      _refresh();
-    }
-
-    // video ended
-    RiseVision.Video.videoEnded();
-  }
-
-  function _onPause() {
-    // this handler also gets called via public "pause()" function, only set "_userPaused = true" if not the case
-    _userPaused = !_viewerPaused;
-  }
-
-  function _onPlay() {
-    _initialPlay = false;
-    _userPaused = false;
-  }
-
-  function _canPlayTimer() {
-    setTimeout(function waitToPlay() {
-
-      if (_canPlay) {
-        _video.play();
-      } else {
-        _canPlayTimer();
-      }
-
-    }, 200);
-  }
-
-  function _refresh() {
-    _video.addEventListener("canplay", _onCanPlay, false);
-    _video.addEventListener("loadeddata", _onLoadedData, false);
-
-    // hide the video while it gets a data refresh to avoid visual ugliness
-    _videoContainer.style.visibility = "hidden";
-
-    // set new src value with a cachebuster
-    _source.setAttribute("src", data.url + _separator + "cb=" + new Date().getTime());
-
-    // flag associated with "canplay" event, ensures video won't be played until it has loaded enough
-    _canPlay = false;
-
-    _video.load();
-  }
-
-  function _refreshTimer(duration) {
-    setTimeout(function videoRefresh() {
-
-      if (_video.paused && _video.currentTime <= 0) {
-        // Only refreshing immediately when in a paused state and the video is at the beginning
-        _refresh();
-      } else {
-        _refreshWaiting = true;
-      }
-
-    }, duration);
-  }
+  var _initialLoad = true;
 
   /*
    *  Public Methods
    */
-  function isInitialPlay() {
-    return _initialPlay;
-  }
-
   function init() {
-    var typeAttr = document.createAttribute("type"),
-      str;
+    var storage = document.getElementById("videoStorage");
 
-    _fragment = document.createDocumentFragment();
-    _source = _fragment.appendChild(document.createElement("source"));
-    _srcAttr = document.createAttribute("src");
-
-    // use default controls if not set to autoplay
-    if (!data.video.autoplay) {
-      _video.setAttribute("controls", "");
+    if (!storage) {
+      return;
     }
 
-    // set appropriate sizing class based on scaleToFit value
-    _video.className = data.video.scaleToFit ? _video.className + " scale-to-fit"
-      : _video.className + " no-scale";
+    storage.addEventListener("rise-storage-response", function(e) {
+      var url;
 
-    // set initial volume on <video>
-    _video.volume = data.video.volume / 100;
+      if (e.detail && e.detail.files && e.detail.files.length > 0) {
+        url = e.detail.files[0].url;
 
-    // set the "type" attribute on <source>
-    typeAttr.value = "video/" + _getVideoFileType();
-    _source.setAttributeNode(typeAttr);
+        if (_initialLoad) {
+          _initialLoad = false;
 
-    // video events
-    _video.addEventListener("loadeddata", _onLoadedData, false);
-    _video.addEventListener("canplay", _onCanPlay, false);
-    _video.addEventListener("ended", _onEnded, false);
-    _video.addEventListener("pause", _onPause, false);
-    _video.addEventListener("play", _onPlay, false);
+          RiseVision.Video.onStorageInit(url);
 
-    _isStorageFile = (Object.keys(data.storage).length !== 0);
+        } else {
+          RiseVision.Video.onStorageRefresh(url);
+        }
+      }
 
-    if (!_isStorageFile) {
-      str = data.url.split("?");
+    });
 
-      // store this for the refresh timer
-      _separator = (str.length === 1) ? "?" : "&";
-
-      // Non storage URL
-      _srcAttr.value = data.url;
-      _source.setAttributeNode(_srcAttr);
-      _video.appendChild(_fragment);
-
-    } else {
-      // Rise Storage
-      _storage.addEventListener("rise-storage-response", _storageResponse);
-
-      _storage.setAttribute("folder", data.storage.folder);
-      _storage.setAttribute("fileName", data.storage.fileName);
-      _storage.setAttribute("companyId", data.storage.companyId);
-      _storage.go();
-    }
-  }
-
-  function pause() {
-    _viewerPaused = true;
-    _video.pause();
-  }
-
-  function play() {
-    _initialPlay = false;
-    _viewerPaused = false;
-
-    if (!_canPlay) {
-      _canPlayTimer();
-    } else {
-      _video.play();
-    }
-
-  }
-
-  function userPaused() {
-    return _userPaused;
+    storage.setAttribute("folder", data.storage.folder);
+    storage.setAttribute("fileName", data.storage.fileName);
+    storage.setAttribute("companyId", data.storage.companyId);
+    storage.go();
   }
 
   return {
-    "isInitialPlay": isInitialPlay,
-    "init": init,
-    "pause": pause,
-    "play": play,
-    "userPaused": userPaused
+    "init": init
+  };
+};
+
+var RiseVision = RiseVision || {};
+RiseVision.Common = RiseVision.Common || {};
+
+RiseVision.Common.Video = RiseVision.Common.Video || {};
+
+RiseVision.Common.Video.FrameController = function () {
+  "use strict";
+
+  var PREFIX = "if_";
+
+  function getFrameContainer(index) {
+    return document.getElementById(PREFIX + index);
+  }
+
+  function getFrameObject(index) {
+    var frameContainer = getFrameContainer(index),
+      iframe;
+
+    iframe = frameContainer.querySelector("iframe");
+
+    if (iframe) {
+      return (iframe.contentWindow) ? iframe.contentWindow :
+        (iframe.contentDocument.document) ? iframe.contentDocument.document : iframe.contentDocument;
+    }
+
+    return null;
+  }
+
+  function _clear(index) {
+    var frameContainer = getFrameContainer(index),
+      frameObj = getFrameObject(index),
+      iframe;
+
+    if (frameObj) {
+      iframe = frameContainer.querySelector("iframe");
+      frameObj.remove();
+      iframe.setAttribute("src", "about:blank");
+    }
+  }
+
+  function add(index) {
+    var frameContainer = getFrameContainer(index),
+      iframe = document.createElement("iframe");
+
+    iframe.setAttribute("allowTransparency", true);
+    iframe.setAttribute("frameborder", "0");
+    iframe.setAttribute("scrolling", "no");
+
+    frameContainer.appendChild(iframe);
+  }
+
+  function createFramePlayer(index, params, files, skin, src) {
+    var frameContainer = getFrameContainer(index),
+      frameObj = getFrameObject(index),
+      iframe;
+
+    if (frameObj) {
+      iframe = frameContainer.querySelector("iframe");
+
+      iframe.onload = function () {
+        iframe.onload = null;
+
+        // initialize and load the player inside the iframe
+        frameObj.init(params, files, skin);
+        frameObj.load();
+      };
+
+      iframe.setAttribute("src", src);
+    }
+
+  }
+
+  function hide(index) {
+    var frameContainer = getFrameContainer(index);
+
+    frameContainer.style.visibility = "hidden";
+  }
+
+  function remove(index, callback) {
+    var frameContainer = document.getElementById(PREFIX + index);
+
+    _clear(index);
+
+    setTimeout(function () {
+      // remove the iframe by clearing all elements inside div container
+      while (frameContainer.firstChild) {
+        frameContainer.removeChild(frameContainer.firstChild);
+      }
+
+      if (callback && typeof callback === "function") {
+        callback();
+      }
+    }, 200);
+  }
+
+  function show(index) {
+    var frameContainer = getFrameContainer(index);
+
+    frameContainer.style.visibility = "visible";
+  }
+
+  return {
+    add: add,
+    createFramePlayer: createFramePlayer,
+    getFrameContainer: getFrameContainer,
+    getFrameObject: getFrameObject,
+    hide: hide,
+    remove: remove,
+    show: show
   };
 };
 
@@ -344,23 +398,20 @@ RiseVision.Video.Player = function (data) {
     RiseVision.Video.stop();
   }
 
-  function additionalParams(names, values) {
-    if (Array.isArray(names) && names.length > 0 && names[0] === "additionalParams") {
-      if (Array.isArray(values) && values.length > 0) {
-        RiseVision.Video.setAdditionalParams(JSON.parse(values[0]));
-      }
+  function polymerReady() {
+    window.removeEventListener("polymer-ready", polymerReady);
+
+    if (id && id !== "") {
+      gadgets.rpc.register("rscmd_play_" + id, play);
+      gadgets.rpc.register("rscmd_pause_" + id, pause);
+      gadgets.rpc.register("rscmd_stop_" + id, stop);
+
+      gadgets.rpc.register("rsparam_set_" + id, RiseVision.Video.setAdditionalParams);
+      gadgets.rpc.call("", "rsparam_get", null, id, ["additionalParams"]);
     }
   }
 
-  if (id && id !== "") {
-    gadgets.rpc.register("rscmd_play_" + id, play);
-    gadgets.rpc.register("rscmd_pause_" + id, pause);
-    gadgets.rpc.register("rscmd_stop_" + id, stop);
-
-    gadgets.rpc.register("rsparam_set_" + id, additionalParams);
-    gadgets.rpc.call("", "rsparam_get", null, id, ["additionalParams"]);
-
-  }
+  window.addEventListener("polymer-ready", polymerReady);
 
 })(window, gadgets);
 
