@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The Video Widget allows you to add a video directly into your Presentation. This can be a video from Storage, your server, or a 3rd party server.
+The Video Widget allows you to add a video directly into your Presentation. This can be a video from Storage, your server, or a 3rd party server. This Widget officially supports the following HTML5 video formats: **WebM**, **MP4**, and **OGG**.
 
 Video Widget works in conjunction with [Rise Vision](http://www.risevision.com), the [digital signage management application](http://rva.risevision.com/) that runs on [Google Cloud](https://cloud.google.com).
 
@@ -12,7 +12,8 @@ At this time Chrome is the only browser that this project and Rise Vision suppor
 - [AngularJS](https://angularjs.org/)
 - [jQuery](http://jquery.com/)
 - [Bootstrap](http://getbootstrap.com/)
-- [Angular Bootstrap Colorpicker](https://github.com/buberdds/angular-bootstrap-colorpicker)
+- [UI Bootstrap](https://angular-ui.github.io/bootstrap/)
+- [JWPlayer](http://www.jwplayer.com/)
 - [i18next](http://i18next.com/)
 - [npm](https://www.npmjs.org)
 - [Bower](http://bower.io/)
