@@ -5,19 +5,9 @@ angular.module("risevision.widget.video.settings")
       $scope.$watch("settings.additionalParams.url", function (url) {
         if (typeof url !== "undefined" && url !== "") {
           if ($scope.settingsForm.videoUrl.$valid) {
-            $scope.settings.additionalParams.videoStorage = commonSettings.getStorageUrlData(url);
+            $scope.settings.additionalParams.storage = commonSettings.getStorageUrlData(url);
           } else {
-            $scope.settings.additionalParams.videoStorage = {};
-          }
-        }
-      });
-
-      $scope.$watch("settings.additionalParams.background.image.url", function (url) {
-        if (typeof url !== "undefined" && url !== "") {
-          if ($scope.settingsForm.background.$valid) {
-            $scope.settings.additionalParams.backgroundStorage = commonSettings.getStorageUrlData(url);
-          } else {
-            $scope.settings.additionalParams.backgroundStorage = {};
+            $scope.settings.additionalParams.storage = {};
           }
         }
       });
@@ -27,9 +17,12 @@ angular.module("risevision.widget.video.settings")
     params: {},
     additionalParams: {
       url: "",
-      videoStorage: {},
-      video: {},
-      background: {},
-      backgroundStorage: {}
+      storage: {},
+      video: {
+        scaleToFit: true,
+        volume: 50,
+        controls: true,
+        autoplay: true
+      }
     }
   });

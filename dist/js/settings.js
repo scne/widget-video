@@ -4479,7 +4479,7 @@ angular.module("risevision.common.i18n", ["pascalprecht.translate", "risevision.
  * angular-ui-bootstrap
  * http://angular-ui.github.io/bootstrap/
 
- * Version: 0.11.0 - 2014-05-01
+ * Version: 0.11.2 - 2014-09-26
  * License: MIT
  */
 angular.module("ui.bootstrap", ["ui.bootstrap.tpls", "ui.bootstrap.transition","ui.bootstrap.collapse","ui.bootstrap.accordion","ui.bootstrap.alert","ui.bootstrap.bindHtml","ui.bootstrap.buttons","ui.bootstrap.carousel","ui.bootstrap.dateparser","ui.bootstrap.position","ui.bootstrap.datepicker","ui.bootstrap.dropdown","ui.bootstrap.modal","ui.bootstrap.pagination","ui.bootstrap.tooltip","ui.bootstrap.popover","ui.bootstrap.progressbar","ui.bootstrap.rating","ui.bootstrap.tabs","ui.bootstrap.timepicker","ui.bootstrap.typeahead"]);
@@ -5224,7 +5224,7 @@ angular.module('ui.bootstrap.dateparser', [])
     }
   };
 
-  this.createParser = function(format) {
+  function createParser(format) {
     var map = [], regex = format.split('');
 
     angular.forEach(formatCodeToRegex, function(data, code) {
@@ -5249,17 +5249,17 @@ angular.module('ui.bootstrap.dateparser', [])
       regex: new RegExp('^' + regex.join('') + '$'),
       map: orderByFilter(map, 'index')
     };
-  };
+  }
 
   this.parse = function(input, format) {
-    if ( !angular.isString(input) ) {
+    if ( !angular.isString(input) || !format ) {
       return input;
     }
 
     format = $locale.DATETIME_FORMATS[format] || format;
 
     if ( !this.parsers[format] ) {
-      this.parsers[format] = this.createParser(format);
+      this.parsers[format] = createParser(format);
     }
 
     var parser = this.parsers[format],
@@ -5485,7 +5485,7 @@ angular.module('ui.bootstrap.datepicker', ['ui.bootstrap.dateparser', 'ui.bootst
     self[key] = angular.isDefined($attrs[key]) ? (index < 8 ? $interpolate($attrs[key])($scope.$parent) : $scope.$parent.$eval($attrs[key])) : datepickerConfig[key];
   });
 
-  // Watchable attributes
+  // Watchable date attributes
   angular.forEach(['minDate', 'maxDate'], function( key ) {
     if ( $attrs[key] ) {
       $scope.$parent.$watch($parse($attrs[key]), function(value) {
@@ -5932,12 +5932,24 @@ function ($compile, $parse, $document, $position, dateFilter, dateParser, datepi
         });
       }
 
-      angular.forEach(['minDate', 'maxDate'], function( key ) {
+      scope.watchData = {};
+      angular.forEach(['minDate', 'maxDate', 'datepickerMode'], function( key ) {
         if ( attrs[key] ) {
-          scope.$parent.$watch($parse(attrs[key]), function(value){
-            scope[key] = value;
+          var getAttribute = $parse(attrs[key]);
+          scope.$parent.$watch(getAttribute, function(value){
+            scope.watchData[key] = value;
           });
-          datepickerEl.attr(cameltoDash(key), key);
+          datepickerEl.attr(cameltoDash(key), 'watchData.' + key);
+
+          // Propagate changes from datepicker to outside
+          if ( key === 'datepickerMode' ) {
+            var setAttribute = getAttribute.assign;
+            scope.$watch('watchData.' + key, function(value, oldvalue) {
+              if ( value !== oldvalue ) {
+                setAttribute(scope.$parent, value);
+              }
+            });
+          }
         }
       });
       if (attrs.dateDisabled) {
@@ -6048,6 +6060,9 @@ function ($compile, $parse, $document, $position, dateFilter, dateParser, datepi
       };
 
       var $popup = $compile(popupEl)(scope);
+      // Prevent jQuery cache memory leak (template is now redundant after linking)
+      popupEl.remove();
+
       if ( appendToBody ) {
         $document.find('body').append($popup);
       } else {
@@ -6109,7 +6124,8 @@ angular.module('ui.bootstrap.dropdown', [])
   };
 
   var closeDropdown = function( evt ) {
-    if (evt && evt.isDefaultPrevented()) {
+    var toggleElement = openScope.getToggleElement();
+    if ( evt && toggleElement && toggleElement[0].contains(evt.target) ) {
         return;
     }
 
@@ -6154,6 +6170,10 @@ angular.module('ui.bootstrap.dropdown', [])
   // Allow other directives to watch status
   this.isOpen = function() {
     return scope.isOpen;
+  };
+
+  scope.getToggleElement = function() {
+    return self.toggleElement;
   };
 
   scope.focusToggleElement = function() {
@@ -6297,7 +6317,8 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
       restrict: 'EA',
       replace: true,
       templateUrl: 'template/modal/backdrop.html',
-      link: function (scope) {
+      link: function (scope, element, attrs) {
+        scope.backdropClass = attrs.backdropClass || '';
 
         scope.animate = false;
 
@@ -6328,8 +6349,18 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
         $timeout(function () {
           // trigger CSS transitions
           scope.animate = true;
-          // focus a freshly-opened modal
-          element[0].focus();
+
+          /**
+           * Auto-focusing of a freshly-opened modal element causes any child elements
+           * with the autofocus attribute to loose focus. This is an issue on touch
+           * based devices which will show and then hide the onscreen keyboard.
+           * Attempts to refocus the autofocus element via JavaScript will not reopen
+           * the onscreen keyboard. Fixed by updated the focusing logic to only autofocus
+           * the modal element if the modal does not contain an autofocus element.
+           */
+          if (!element[0].querySelectorAll('[autofocus]').length) {
+            element[0].focus();
+          }
         });
 
         scope.close = function (evt) {
@@ -6343,6 +6374,17 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
       }
     };
   }])
+
+  .directive('modalTransclude', function () {
+    return {
+      link: function($scope, $element, $attrs, controller, $transclude) {
+        $transclude($scope.$parent, function(clone) {
+          $element.empty();
+          $element.append(clone);
+        });
+      }
+    };
+  })
 
   .factory('$modalStack', ['$transition', '$timeout', '$document', '$compile', '$rootScope', '$$stackedMap',
     function ($transition, $timeout, $document, $compile, $rootScope, $$stackedMap) {
@@ -6415,7 +6457,7 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
           });
         } else {
           // Ensure this call is async
-          $timeout(afterAnimating, 0);
+          $timeout(afterAnimating);
         }
 
         function afterAnimating() {
@@ -6460,7 +6502,9 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
         if (currBackdropIndex >= 0 && !backdropDomEl) {
           backdropScope = $rootScope.$new(true);
           backdropScope.index = currBackdropIndex;
-          backdropDomEl = $compile('<div modal-backdrop></div>')(backdropScope);
+          var angularBackgroundDomEl = angular.element('<div modal-backdrop></div>');
+          angularBackgroundDomEl.attr('backdrop-class', modal.backdropClass);
+          backdropDomEl = $compile(angularBackgroundDomEl)(backdropScope);
           body.append(backdropDomEl);
         }
 
@@ -6480,17 +6524,17 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
       };
 
       $modalStack.close = function (modalInstance, result) {
-        var modalWindow = openedWindows.get(modalInstance).value;
+        var modalWindow = openedWindows.get(modalInstance);
         if (modalWindow) {
-          modalWindow.deferred.resolve(result);
+          modalWindow.value.deferred.resolve(result);
           removeModalWindow(modalInstance);
         }
       };
 
       $modalStack.dismiss = function (modalInstance, reason) {
-        var modalWindow = openedWindows.get(modalInstance).value;
+        var modalWindow = openedWindows.get(modalInstance);
         if (modalWindow) {
-          modalWindow.deferred.reject(reason);
+          modalWindow.value.deferred.reject(reason);
           removeModalWindow(modalInstance);
         }
       };
@@ -6524,14 +6568,15 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
 
           function getTemplatePromise(options) {
             return options.template ? $q.when(options.template) :
-              $http.get(options.templateUrl, {cache: $templateCache}).then(function (result) {
-                return result.data;
+              $http.get(angular.isFunction(options.templateUrl) ? (options.templateUrl)() : options.templateUrl,
+                {cache: $templateCache}).then(function (result) {
+                  return result.data;
               });
           }
 
           function getResolvePromises(resolves) {
             var promisesArr = [];
-            angular.forEach(resolves, function (value, key) {
+            angular.forEach(resolves, function (value) {
               if (angular.isFunction(value) || angular.isArray(value)) {
                 promisesArr.push($q.when($injector.invoke(value)));
               }
@@ -6587,6 +6632,9 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
                 });
 
                 ctrlInstance = $controller(modalOptions.controller, ctrlLocals);
+                if (modalOptions.controllerAs) {
+                  modalScope[modalOptions.controllerAs] = ctrlInstance;
+                }
               }
 
               $modalStack.open(modalInstance, {
@@ -6595,6 +6643,7 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.transition'])
                 content: tplAndVars[0],
                 backdrop: modalOptions.backdrop,
                 keyboard: modalOptions.keyboard,
+                backdropClass: modalOptions.backdropClass,
                 windowClass: modalOptions.windowClass,
                 windowTemplateUrl: modalOptions.windowTemplateUrl,
                 size: modalOptions.size
@@ -7905,7 +7954,7 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position', 'ui.bootstrap
   .factory('typeaheadParser', ['$parse', function ($parse) {
 
   //                      00000111000000000000022200000000000000003333333333333330000000000044000
-  var TYPEAHEAD_REGEXP = /^\s*(.*?)(?:\s+as\s+(.*?))?\s+for\s+(?:([\$\w][\$\w\d]*))\s+in\s+(.*)$/;
+  var TYPEAHEAD_REGEXP = /^\s*([\s\S]+?)(?:\s+as\s+([\s\S]+?))?\s+for\s+(?:([\$\w][\$\w\d]*))\s+in\s+([\s\S]+?)$/;
 
   return {
     parse:function (input) {
@@ -8071,6 +8120,18 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position', 'ui.bootstrap
       //Declare the timeout promise var outside the function scope so that stacked calls can be cancelled later 
       var timeoutPromise;
 
+      var scheduleSearchWithTimeout = function(inputValue) {
+        timeoutPromise = $timeout(function () {
+          getMatchesAsync(inputValue);
+        }, waitTime);
+      };
+
+      var cancelPreviousTimeout = function() {
+        if (timeoutPromise) {
+          $timeout.cancel(timeoutPromise);
+        }
+      };
+
       //plug into $parsers pipeline to open a typeahead on view changes initiated from DOM
       //$parsers kick-in on all the changes coming from the view as well as manually triggered by $setViewValue
       modelCtrl.$parsers.unshift(function (inputValue) {
@@ -8079,17 +8140,14 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position', 'ui.bootstrap
 
         if (inputValue && inputValue.length >= minSearch) {
           if (waitTime > 0) {
-            if (timeoutPromise) {
-              $timeout.cancel(timeoutPromise);//cancel previous timeout
-            }
-            timeoutPromise = $timeout(function () {
-              getMatchesAsync(inputValue);
-            }, waitTime);
+            cancelPreviousTimeout();
+            scheduleSearchWithTimeout(inputValue);
           } else {
             getMatchesAsync(inputValue);
           }
         } else {
           isLoadingSetter(originalScope, false);
+          cancelPreviousTimeout();
           resetMatches();
         }
 
@@ -8297,7 +8355,7 @@ angular.module("template/accordion/accordion.html", []).run(["$templateCache", f
 
 angular.module("template/alert/alert.html", []).run(["$templateCache", function($templateCache) {
   $templateCache.put("template/alert/alert.html",
-    "<div class=\"alert\" ng-class=\"{'alert-{{type || 'warning'}}': true, 'alert-dismissable': closeable}\" role=\"alert\">\n" +
+    "<div class=\"alert\" ng-class=\"['alert-' + (type || 'warning'), closeable ? 'alert-dismissable' : null]\" role=\"alert\">\n" +
     "    <button ng-show=\"closeable\" type=\"button\" class=\"close\" ng-click=\"close()\">\n" +
     "        <span aria-hidden=\"true\">&times;</span>\n" +
     "        <span class=\"sr-only\">Close</span>\n" +
@@ -8426,7 +8484,7 @@ angular.module("template/datepicker/year.html", []).run(["$templateCache", funct
 
 angular.module("template/modal/backdrop.html", []).run(["$templateCache", function($templateCache) {
   $templateCache.put("template/modal/backdrop.html",
-    "<div class=\"modal-backdrop fade\"\n" +
+    "<div class=\"modal-backdrop fade {{ backdropClass }}\"\n" +
     "     ng-class=\"{in: animate}\"\n" +
     "     ng-style=\"{'z-index': 1040 + (index && 1 || 0) + index*10}\"\n" +
     "></div>\n" +
@@ -8436,7 +8494,7 @@ angular.module("template/modal/backdrop.html", []).run(["$templateCache", functi
 angular.module("template/modal/window.html", []).run(["$templateCache", function($templateCache) {
   $templateCache.put("template/modal/window.html",
     "<div tabindex=\"-1\" role=\"dialog\" class=\"modal fade\" ng-class=\"{in: animate}\" ng-style=\"{'z-index': 1050 + index*10, display: 'block'}\" ng-click=\"close($event)\">\n" +
-    "    <div class=\"modal-dialog\" ng-class=\"{'modal-sm': size == 'sm', 'modal-lg': size == 'lg'}\"><div class=\"modal-content\" ng-transclude></div></div>\n" +
+    "    <div class=\"modal-dialog\" ng-class=\"{'modal-sm': size == 'sm', 'modal-lg': size == 'lg'}\"><div class=\"modal-content\" modal-transclude></div></div>\n" +
     "</div>");
 }]);
 
@@ -8524,16 +8582,8 @@ angular.module("template/tabs/tab.html", []).run(["$templateCache", function($te
     "");
 }]);
 
-angular.module("template/tabs/tabset-titles.html", []).run(["$templateCache", function($templateCache) {
-  $templateCache.put("template/tabs/tabset-titles.html",
-    "<ul class=\"nav {{type && 'nav-' + type}}\" ng-class=\"{'nav-stacked': vertical}\">\n" +
-    "</ul>\n" +
-    "");
-}]);
-
 angular.module("template/tabs/tabset.html", []).run(["$templateCache", function($templateCache) {
   $templateCache.put("template/tabs/tabset.html",
-    "\n" +
     "<div>\n" +
     "  <ul class=\"nav nav-{{type || 'tabs'}}\" ng-class=\"{'nav-stacked': vertical, 'nav-justified': justified}\" ng-transclude></ul>\n" +
     "  <div class=\"tab-content\">\n" +
@@ -8585,11 +8635,12 @@ angular.module("template/typeahead/typeahead-match.html", []).run(["$templateCac
 
 angular.module("template/typeahead/typeahead-popup.html", []).run(["$templateCache", function($templateCache) {
   $templateCache.put("template/typeahead/typeahead-popup.html",
-    "<ul class=\"dropdown-menu\" ng-if=\"isOpen()\" ng-style=\"{top: position.top+'px', left: position.left+'px'}\" style=\"display: block;\" role=\"listbox\" aria-hidden=\"{{!isOpen()}}\">\n" +
+    "<ul class=\"dropdown-menu\" ng-show=\"isOpen()\" ng-style=\"{top: position.top+'px', left: position.left+'px'}\" style=\"display: block;\" role=\"listbox\" aria-hidden=\"{{!isOpen()}}\">\n" +
     "    <li ng-repeat=\"match in matches track by $index\" ng-class=\"{active: isActive($index) }\" ng-mouseenter=\"selectActive($index)\" ng-click=\"selectMatch($index)\" role=\"option\" id=\"{{match.id}}\">\n" +
     "        <div typeahead-match index=\"$index\" match=\"match\" query=\"query\" template-url=\"templateUrl\"></div>\n" +
     "    </li>\n" +
-    "</ul>");
+    "</ul>\n" +
+    "");
 }]);
 
 /*!
@@ -27721,541 +27772,6 @@ angular.module('ui.bootstrap-slider', [])
 	}])
 ;
 
-'use strict';
-
-angular.module('colorpicker.module', [])
-    .factory('Helper', function () {
-      return {
-        closestSlider: function (elem) {
-          var matchesSelector = elem.matches || elem.webkitMatchesSelector || elem.mozMatchesSelector || elem.msMatchesSelector;
-          if (matchesSelector.bind(elem)('I')) {
-            return elem.parentNode;
-          }
-          return elem;
-        },
-        getOffset: function (elem, fixedPosition) {
-          var
-              x = 0,
-              y = 0,
-              scrollX = 0,
-              scrollY = 0;
-          while (elem && !isNaN(elem.offsetLeft) && !isNaN(elem.offsetTop)) {
-            x += elem.offsetLeft;
-            y += elem.offsetTop;
-            if (!fixedPosition && elem.tagName === 'BODY') {
-              scrollX += document.documentElement.scrollLeft || elem.scrollLeft;
-              scrollY += document.documentElement.scrollTop || elem.scrollTop;
-            } else {
-              scrollX += elem.scrollLeft;
-              scrollY += elem.scrollTop;
-            }
-            elem = elem.offsetParent;
-          }
-          return {
-            top: y,
-            left: x,
-            scrollX: scrollX,
-            scrollY: scrollY
-          };
-        },
-        // a set of RE's that can match strings and generate color tuples. https://github.com/jquery/jquery-color/
-        stringParsers: [
-          {
-            re: /rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*(\d+(?:\.\d+)?)\s*)?\)/,
-            parse: function (execResult) {
-              return [
-                execResult[1],
-                execResult[2],
-                execResult[3],
-                execResult[4]
-              ];
-            }
-          },
-          {
-            re: /rgba?\(\s*(\d+(?:\.\d+)?)\%\s*,\s*(\d+(?:\.\d+)?)\%\s*,\s*(\d+(?:\.\d+)?)\%\s*(?:,\s*(\d+(?:\.\d+)?)\s*)?\)/,
-            parse: function (execResult) {
-              return [
-                2.55 * execResult[1],
-                2.55 * execResult[2],
-                2.55 * execResult[3],
-                execResult[4]
-              ];
-            }
-          },
-          {
-            re: /#([a-fA-F0-9]{2})([a-fA-F0-9]{2})([a-fA-F0-9]{2})/,
-            parse: function (execResult) {
-              return [
-                parseInt(execResult[1], 16),
-                parseInt(execResult[2], 16),
-                parseInt(execResult[3], 16)
-              ];
-            }
-          },
-          {
-            re: /#([a-fA-F0-9])([a-fA-F0-9])([a-fA-F0-9])/,
-            parse: function (execResult) {
-              return [
-                parseInt(execResult[1] + execResult[1], 16),
-                parseInt(execResult[2] + execResult[2], 16),
-                parseInt(execResult[3] + execResult[3], 16)
-              ];
-            }
-          }
-        ]
-      };
-    })
-    .factory('Color', ['Helper', function (Helper) {
-      return {
-        value: {
-          h: 1,
-          s: 1,
-          b: 1,
-          a: 1
-        },
-        // translate a format from Color object to a string
-        'rgb': function () {
-          var rgb = this.toRGB();
-          return 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
-        },
-        'rgba': function () {
-          var rgb = this.toRGB();
-          return 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + rgb.a + ')';
-        },
-        'hex': function () {
-          return  this.toHex();
-        },
-
-        // HSBtoRGB from RaphaelJS
-        RGBtoHSB: function (r, g, b, a) {
-          r /= 255;
-          g /= 255;
-          b /= 255;
-
-          var H, S, V, C;
-          V = Math.max(r, g, b);
-          C = V - Math.min(r, g, b);
-          H = (C === 0 ? null :
-              V === r ? (g - b) / C :
-                  V === g ? (b - r) / C + 2 :
-                      (r - g) / C + 4
-              );
-          H = ((H + 360) % 6) * 60 / 360;
-          S = C === 0 ? 0 : C / V;
-          return {h: H || 1, s: S, b: V, a: a || 1};
-        },
-
-        //parse a string to HSB
-        setColor: function (val) {
-          val = val.toLowerCase();
-          for (var key in Helper.stringParsers) {
-            if (Helper.stringParsers.hasOwnProperty(key)) {
-              var parser = Helper.stringParsers[key];
-              var match = parser.re.exec(val),
-                  values = match && parser.parse(match);
-              if (values) {
-                this.value = this.RGBtoHSB.apply(null, values);
-                return false;
-              }
-            }
-          }
-        },
-
-        setHue: function (h) {
-          this.value.h = 1 - h;
-        },
-
-        setSaturation: function (s) {
-          this.value.s = s;
-        },
-
-        setLightness: function (b) {
-          this.value.b = 1 - b;
-        },
-
-        setAlpha: function (a) {
-          this.value.a = parseInt((1 - a) * 100, 10) / 100;
-        },
-
-        // HSBtoRGB from RaphaelJS
-        // https://github.com/DmitryBaranovskiy/raphael/
-        toRGB: function (h, s, b, a) {
-          if (!h) {
-            h = this.value.h;
-            s = this.value.s;
-            b = this.value.b;
-          }
-          h *= 360;
-          var R, G, B, X, C;
-          h = (h % 360) / 60;
-          C = b * s;
-          X = C * (1 - Math.abs(h % 2 - 1));
-          R = G = B = b - C;
-
-          h = ~~h;
-          R += [C, X, 0, 0, X, C][h];
-          G += [X, C, C, X, 0, 0][h];
-          B += [0, 0, X, C, C, X][h];
-          return {
-            r: Math.round(R * 255),
-            g: Math.round(G * 255),
-            b: Math.round(B * 255),
-            a: a || this.value.a
-          };
-        },
-
-        toHex: function (h, s, b, a) {
-          var rgb = this.toRGB(h, s, b, a);
-          return '#' + ((1 << 24) | (parseInt(rgb.r, 10) << 16) | (parseInt(rgb.g, 10) << 8) | parseInt(rgb.b, 10)).toString(16).substr(1);
-        }
-      };
-    }])
-    .factory('Slider', ['Helper', function (Helper) {
-      var
-          slider = {
-            maxLeft: 0,
-            maxTop: 0,
-            callLeft: null,
-            callTop: null,
-            knob: {
-              top: 0,
-              left: 0
-            }
-          },
-          pointer = {};
-
-      return {
-        getSlider: function() {
-          return slider;
-        },
-        getLeftPosition: function(event) {
-          return Math.max(0, Math.min(slider.maxLeft, slider.left + ((event.pageX || pointer.left) - pointer.left)));
-        },
-        getTopPosition: function(event) {
-          return Math.max(0, Math.min(slider.maxTop, slider.top + ((event.pageY || pointer.top) - pointer.top)));
-        },
-        setSlider: function (event, fixedPosition) {
-          var
-            target = Helper.closestSlider(event.target),
-            targetOffset = Helper.getOffset(target, fixedPosition);
-          slider.knob = target.children[0].style;
-          slider.left = event.pageX - targetOffset.left - window.pageXOffset + targetOffset.scrollX;
-          slider.top = event.pageY - targetOffset.top - window.pageYOffset + targetOffset.scrollY;
-
-          pointer = {
-            left: event.pageX,
-            top: event.pageY
-          };
-        },
-        setSaturation: function(event, fixedPosition) {
-          slider = {
-            maxLeft: 100,
-            maxTop: 100,
-            callLeft: 'setSaturation',
-            callTop: 'setLightness'
-          };
-          this.setSlider(event, fixedPosition);
-        },
-        setHue: function(event, fixedPosition) {
-          slider = {
-            maxLeft: 0,
-            maxTop: 100,
-            callLeft: false,
-            callTop: 'setHue'
-          };
-          this.setSlider(event, fixedPosition);
-        },
-        setAlpha: function(event, fixedPosition) {
-          slider = {
-            maxLeft: 0,
-            maxTop: 100,
-            callLeft: false,
-            callTop: 'setAlpha'
-          };
-          this.setSlider(event, fixedPosition);
-        },
-        setKnob: function(top, left) {
-          slider.knob.top = top + 'px';
-          slider.knob.left = left + 'px';
-        }
-      };
-    }])
-    .directive('colorpicker', ['$document', '$compile', 'Color', 'Slider', 'Helper', function ($document, $compile, Color, Slider, Helper) {
-      return {
-        require: '?ngModel',
-        restrict: 'A',
-        link: function ($scope, elem, attrs, ngModel) {
-          var
-              thisFormat = attrs.colorpicker ? attrs.colorpicker : 'hex',
-              isBackgroundSetting = angular.isDefined(attrs.backgroundSetting) ? true : false,
-              position = angular.isDefined(attrs.colorpickerPosition) ? attrs.colorpickerPosition : 'bottom',
-              inline = angular.isDefined(attrs.colorpickerInline) ? attrs.colorpickerInline : false,
-              fixedPosition = angular.isDefined(attrs.colorpickerFixedPosition) ? attrs.colorpickerFixedPosition : false,
-              target = angular.isDefined(attrs.colorpickerParent) ? elem.parent() : angular.element(document.body),
-              withInput = angular.isDefined(attrs.colorpickerWithInput) ? attrs.colorpickerWithInput : false,
-              inputTemplate = withInput ? '<input type="text" name="colorpicker-input">' : '';
-
-          var
-              closeButton = !inline ? '<button type="button" class="close close-colorpicker">&times;</button>' : '',
-              template = isBackgroundSetting ?
-                  '<div class="colorpicker dropdown">' +
-                    '<div class="dropdown-menu">' +
-                    '<colorpicker-saturation><i></i></colorpicker-saturation>' +
-                    '<colorpicker-hue><i></i></colorpicker-hue>' +
-                    '<colorpicker-alpha><i></i></colorpicker-alpha>' +
-                    inputTemplate +
-                    '</div>' +
-                    '</div>'
-                :
-                  '<div class="colorpicker dropdown">' +
-                      '<div class="dropdown-menu">' +
-                      '<colorpicker-saturation><i></i></colorpicker-saturation>' +
-                      '<colorpicker-hue><i></i></colorpicker-hue>' +
-                      '<colorpicker-alpha><i></i></colorpicker-alpha>' +
-                      '<colorpicker-preview></colorpicker-preview>' +
-                      inputTemplate +
-                      closeButton +
-                      '</div>' +
-                      '</div>',
-              colorpickerTemplate = angular.element(template),
-              pickerColor = Color,
-              sliderAlpha,
-              sliderHue = colorpickerTemplate.find('colorpicker-hue'),
-              sliderSaturation = colorpickerTemplate.find('colorpicker-saturation'),
-              colorpickerPreview = colorpickerTemplate.find('colorpicker-preview'),
-              pickerColorPointers = colorpickerTemplate.find('i');
-
-          $compile(colorpickerTemplate)($scope);
-
-          if (withInput) {
-            var pickerColorInput = colorpickerTemplate.find('input');
-            pickerColorInput
-                .on('mousedown', function(event) {
-                  event.stopPropagation();
-                })
-                .on('keyup', function(event) {
-                  var newColor = this.value;
-                  elem.val(newColor);
-                  if(ngModel) {
-                    $scope.$apply(ngModel.$setViewValue(newColor));
-                  }
-                  event.stopPropagation();
-                  event.preventDefault();
-                });
-            elem.on('keyup', function() {
-              pickerColorInput.val(elem.val());
-            });
-          }
-
-          var bindMouseEvents = function() {
-            $document.on('mousemove', mousemove);
-            $document.on('mouseup', mouseup);
-          };
-
-          if (thisFormat === 'rgba') {
-            colorpickerTemplate.addClass('alpha');
-            sliderAlpha = colorpickerTemplate.find('colorpicker-alpha');
-            sliderAlpha
-                .on('click', function(event) {
-                  Slider.setAlpha(event, fixedPosition);
-                  mousemove(event);
-                })
-                .on('mousedown', function(event) {
-                  Slider.setAlpha(event, fixedPosition);
-                  bindMouseEvents();
-                });
-          }
-
-          sliderHue
-              .on('click', function(event) {
-                Slider.setHue(event, fixedPosition);
-                mousemove(event);
-              })
-              .on('mousedown', function(event) {
-                Slider.setHue(event, fixedPosition);
-                bindMouseEvents();
-              });
-
-          sliderSaturation
-              .on('click', function(event) {
-                Slider.setSaturation(event, fixedPosition);
-                mousemove(event);
-              })
-              .on('mousedown', function(event) {
-                Slider.setSaturation(event, fixedPosition);
-                bindMouseEvents();
-              });
-
-          if (fixedPosition) {
-            colorpickerTemplate.addClass('colorpicker-fixed-position');
-          }
-
-          colorpickerTemplate.addClass('colorpicker-position-' + position);
-		      if (inline === 'true') {
-			      colorpickerTemplate.addClass('colorpicker-inline');
-		      }
-
-          target.append(colorpickerTemplate);
-
-          if(ngModel) {
-            ngModel.$render = function () {
-              elem.val(ngModel.$viewValue);
-            };
-            $scope.$watch(attrs.ngModel, function(newVal) {
-              update();
-
-              if (withInput) {
-                pickerColorInput.val(newVal);
-              }
-            });
-          }
-
-          elem.on('$destroy', function() {
-            colorpickerTemplate.remove();
-          });
-
-          var previewColor = function () {
-            try {
-              colorpickerPreview.css('backgroundColor', pickerColor[thisFormat]());
-            } catch (e) {
-              colorpickerPreview.css('backgroundColor', pickerColor.toHex());
-            }
-            sliderSaturation.css('backgroundColor', pickerColor.toHex(pickerColor.value.h, 1, 1, 1));
-            if (thisFormat === 'rgba') {
-              sliderAlpha.css.backgroundColor = pickerColor.toHex();
-            }
-          };
-
-          var mousemove = function (event) {
-            var
-                left = Slider.getLeftPosition(event),
-                top = Slider.getTopPosition(event),
-                slider = Slider.getSlider();
-
-            Slider.setKnob(top, left);
-
-            if (slider.callLeft) {
-              pickerColor[slider.callLeft].call(pickerColor, left / 100);
-            }
-            if (slider.callTop) {
-              pickerColor[slider.callTop].call(pickerColor, top / 100);
-            }
-            previewColor();
-            var newColor = pickerColor[thisFormat]();
-            elem.val(newColor);
-            if(ngModel) {
-              $scope.$apply(ngModel.$setViewValue(newColor));
-            }
-            if (withInput) {
-              pickerColorInput.val(newColor);
-            }
-            return false;
-          };
-
-          var mouseup = function () {
-            $document.off('mousemove', mousemove);
-            $document.off('mouseup', mouseup);
-          };
-
-          var update = function () {
-            pickerColor.setColor(elem.val());
-            pickerColorPointers.eq(0).css({
-              left: pickerColor.value.s * 100 + 'px',
-              top: 100 - pickerColor.value.b * 100 + 'px'
-            });
-            pickerColorPointers.eq(1).css('top', 100 * (1 - pickerColor.value.h) + 'px');
-            pickerColorPointers.eq(2).css('top', 100 * (1 - pickerColor.value.a) + 'px');
-            previewColor();
-          };
-
-          var getColorpickerTemplatePosition = function() {
-            var
-                positionValue,
-                positionOffset = Helper.getOffset(elem[0]);
-
-            if(angular.isDefined(attrs.colorpickerParent)) {
-              positionOffset.left = 0;
-              positionOffset.top = 0;
-            }
-
-            if (position === 'top') {
-              positionValue =  {
-                'top': positionOffset.top - 147,
-                'left': positionOffset.left
-              };
-            } else if (position === 'right') {
-              positionValue = {
-                'top': positionOffset.top,
-                'left': positionOffset.left + 126
-              };
-            } else if (position === 'bottom') {
-              positionValue = {
-                'top': positionOffset.top + elem[0].offsetHeight + 2,
-                'left': positionOffset.left
-              };
-            } else if (position === 'left') {
-              positionValue = {
-                'top': positionOffset.top,
-                'left': positionOffset.left - 150
-              };
-            }
-            return {
-              'top': positionValue.top + 'px',
-              'left': positionValue.left + 'px'
-            };
-          };
-
-          var documentMousedownHandler = function() {
-            hideColorpickerTemplate();
-          };
-
-          if(inline === false) {
-            elem.on('click', function () {
-              update();
-              colorpickerTemplate
-                .addClass('colorpicker-visible')
-                .css(getColorpickerTemplatePosition());
-
-              // register global mousedown event to hide the colorpicker
-              $document.on('mousedown', documentMousedownHandler);
-            });
-          } else {
-            update();
-            colorpickerTemplate
-              .addClass('colorpicker-visible')
-              .css(getColorpickerTemplatePosition());
-          }
-
-          colorpickerTemplate.on('mousedown', function (event) {
-            event.stopPropagation();
-            event.preventDefault();
-          });
-
-          var emitEvent = function(name) {
-            if(ngModel) {
-              $scope.$emit(name, {
-                name: attrs.ngModel,
-                value: ngModel.$modelValue
-              });
-            }
-          };
-
-          var hideColorpickerTemplate = function() {
-            if (colorpickerTemplate.hasClass('colorpicker-visible')) {
-              colorpickerTemplate.removeClass('colorpicker-visible');
-              emitEvent('colorpicker-closed');
-              // unregister the global mousedown event
-              $document.off('mousedown', documentMousedownHandler);
-            }
-          };
-
-          colorpickerTemplate.find('button').on('click', function () {
-            hideColorpickerTemplate();
-          });
-        }
-      };
-    }]);
-
 (function () {
   "use strict";
 
@@ -28334,7 +27850,7 @@ app.run(["$templateCache", function($templateCache) {
 
 if (typeof angular !== "undefined") {
   angular.module("risevision.widget.common.storage-selector.config", [])
-    .value("STORAGE_MODAL", "http://storage.risevision.com/storage-modal.html#/files/");
+    .value("STORAGE_MODAL", "https://storage.risevision.com/files/");
 }
 
 (function () {
@@ -28345,25 +27861,33 @@ if (typeof angular !== "undefined") {
     "ui.bootstrap",
     "risevision.widget.common.storage-selector.config"
   ])
-  .directive("storageSelector", ["$window", "$templateCache", "$modal", "$sce", "$log", "STORAGE_MODAL",
-    function($window, $templateCache, $modal, $sce, $log, STORAGE_MODAL){
+  .directive("storageSelector", ["$templateCache", "$modal", "$sce", "$log", "STORAGE_MODAL",
+    function($templateCache, $modal, $sce, $log, STORAGE_MODAL){
       return {
         restrict: "EA",
         scope : {
-          local: "@",
-          useCtrl: "@",
-          instanceTemplate: "@",
-          companyId : "@"
+          companyId : "@",
+          type: "@"
         },
         template: $templateCache.get("storage-selector.html"),
         link: function (scope) {
 
+          function updateStorageUrl() {
+            if (typeof scope.type !== "undefined" && scope.type !== "") {
+              scope.storageUrl = STORAGE_MODAL + scope.companyId + "?selector-type=" + scope.type;
+            } else {
+              // If no "type" value then omit the selector-type param to allow In-App Storage to apply a default
+              scope.storageUrl = STORAGE_MODAL + scope.companyId;
+            }
+          }
+
           scope.storageUrl = "";
 
           scope.open = function() {
-            var modalInstance = $modal.open({
-              templateUrl: scope.instanceTemplate || "storage.html",
-              controller: scope.useCtrl || "StorageCtrl",
+
+            scope.modalInstance = $modal.open({
+              templateUrl: "storage.html",
+              controller: "StorageCtrl",
               size: "lg",
               backdrop: true,
               resolve: {
@@ -28373,25 +27897,34 @@ if (typeof angular !== "undefined") {
               }
             });
 
-            modalInstance.result.then(function (files) {
+            scope.modalInstance.result.then(function (files) {
+              // for unit test purposes
+              scope.files = files;
+
               // emit an event with name "files", passing the array of files selected from storage
               scope.$emit("picked", files);
 
             }, function () {
+              // for unit test purposes
+              scope.canceled = true;
+
               $log.info("Modal dismissed at: " + new Date());
+
             });
 
           };
 
-          if (scope.local){
-            scope.storageUrl = STORAGE_MODAL + "local";
-          } else {
-            scope.$watch("companyId", function (companyId) {
-              if (companyId) {
-                scope.storageUrl = STORAGE_MODAL + companyId;
-              }
-            });
-          }
+          scope.$watch("companyId", function (companyId) {
+            if (companyId) {
+              updateStorageUrl();
+            }
+          });
+
+          scope.$watch("type", function (type) {
+            if (type) {
+              updateStorageUrl();
+            }
+          });
         }
       };
    }
@@ -28401,27 +27934,33 @@ if (typeof angular !== "undefined") {
 
 
 angular.module("risevision.widget.common.storage-selector")
-  .controller("StorageCtrl", ["$scope", "$modalInstance", "storageUrl", "$window", "$log",
-    function($scope, $modalInstance, storageUrl, $window/*, $log*/){
+  .controller("StorageCtrl", ["$scope", "$modalInstance", "storageUrl", "$window", "$log", "STORAGE_MODAL",
+    function($scope, $modalInstance, storageUrl, $window, $log, STORAGE_MODAL){
 
-    $scope.storageUrl = storageUrl;
+      $scope.storageUrl = storageUrl;
 
-    $window.addEventListener("message", function (event) {
-      var storageTest = "storage-stage.risevision.com",
-        storageProd = "storage.risevision.com";
+      $scope.isSameOrigin = function (origin) {
+        var parser = document.createElement("a");
+        parser.href = STORAGE_MODAL;
 
-      if (event.origin.indexOf(storageTest) === -1 && event.origin.indexOf(storageProd) === -1) {
-        return;
-      }
+        return origin.indexOf(parser.host) !== -1;
+      };
 
-      if (Array.isArray(event.data)) {
-        $modalInstance.close(event.data);
-      } else if (typeof event.data === "string") {
-        if (event.data === "close") {
-          $modalInstance.dismiss("cancel");
+      $scope.messageHandler = function (event) {
+        if (!$scope.isSameOrigin(event.origin)) {
+          return;
         }
-      }
-    });
+
+        if (Array.isArray(event.data)) {
+          $modalInstance.close(event.data);
+        } else if (typeof event.data === "string") {
+          if (event.data === "close") {
+            $modalInstance.dismiss("cancel");
+          }
+        }
+      };
+
+      $window.addEventListener("message", $scope.messageHandler);
 
   }]);
 
@@ -28456,7 +27995,8 @@ app.run(["$templateCache", function($templateCache) {
           hideLabel: "@",
           hideStorage: "@",
           companyId: "@",
-          fileType: "@"
+          fileType: "@",
+          storageType: "@"
         },
         template: $templateCache.get("_angular/url-field/url-field.html"),
         link: function (scope, element, attrs, ctrl) {
@@ -28499,9 +28039,7 @@ app.run(["$templateCache", function($templateCache) {
              Reasoning
              http://mathiasbynens.be/demo/url-regex */
 
-            /* jshint ignore:start */
-            urlRegExp = /^(?:(?:https?|ftp):\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]+-?)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]+-?)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:\/[^\s]*)?$/i;
-            /* jshint ignore:end */
+            urlRegExp = /^(?:(?:https?|ftp):\/\/)(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]+-?)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]+-?)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:\/[^\s]*)?$/i; // jshint ignore:line
 
             // Add http:// if no protocol parameter exists
             if (value.indexOf("://") === -1) {
@@ -28531,7 +28069,7 @@ app.run(["$templateCache", function($templateCache) {
 
           scope.invalidType = "url";
 
-          scope.allowInitEmpty = (typeof attrs.initEmpty !== "undefined") ? true : false;
+          scope.allowInitEmpty = (typeof attrs.initEmpty !== "undefined");
 
           if (!scope.hideStorage) {
             scope.$on("picked", function (event, data) {
@@ -28594,7 +28132,7 @@ app.run(["$templateCache", function($templateCache) {
     "  <label ng-if=\"!hideLabel\">{{ \"url.label\" | translate }}</label>\n" +
     "  <div ng-class=\"{'input-group':!hideStorage}\">\n" +
     "    <input name=\"url\" type=\"text\" ng-model=\"url\" ng-blur=\"blur()\" class=\"form-control\" placeholder=\"http://\">\n" +
-    "    <span class=\"input-url-addon\" ng-if=\"!hideStorage\"><storage-selector company-id=\"{{companyId}}\"></storage-selector></span>\n" +
+    "    <span class=\"input-url-addon\" ng-if=\"!hideStorage\"><storage-selector company-id=\"{{companyId}}\" type=\"{{storageType}}\"></storage-selector></span>\n" +
     "  </div>\n" +
     "  <p ng-if=\"!valid && invalidType === 'url'\" class=\"text-danger\">{{ \"url.errors.url\" | translate }}</p>\n" +
     "  <p ng-if=\"!valid && invalidType === 'image'\" class=\"text-danger\">{{ \"url.errors.image\" | translate }}</p>\n" +
@@ -28612,306 +28150,28 @@ app.run(["$templateCache", function($templateCache) {
 }]);
 })();
 
-(function () {
-  "use strict";
-
-  angular.module("risevision.widget.common.position-setting", ["risevision.common.i18n"])
-    .directive("positionSetting", ["$templateCache", "$log", function ($templateCache/*, $log*/) {
-      return {
-        restrict: "E",
-        scope: {
-          position: "=",
-          hideLabel: "@"
-        },
-        template: $templateCache.get("_angular/position-setting/position-setting.html"),
-        link: function ($scope) {
-          $scope.$watch("position", function(position) {
-            if (typeof position === "undefined") {
-              // set a default
-              $scope.position = "top-left";
-            }
-          });
-        }
-      };
-    }]);
-}());
-
-(function(module) {
-try { app = angular.module("risevision.widget.common.position-setting"); }
-catch(err) { app = angular.module("risevision.widget.common.position-setting", []); }
-app.run(["$templateCache", function($templateCache) {
-  "use strict";
-  $templateCache.put("_angular/position-setting/position-setting.html",
-    "<div class=\"row\">\n" +
-    "  <div class=\"col-md-3\">\n" +
-    "    <label ng-if=\"!hideLabel\"> {{'widgets.alignment' | translate}}</label>\n" +
-    "    <select name=\"position\" ng-model=\"position\" class=\"form-control\">\n" +
-    "      <option value=\"top-left\">{{'position.top.left' | translate}}</option>\n" +
-    "      <option value=\"top-center\">{{'position.top.center' | translate}}</option>\n" +
-    "      <option value=\"top-right\">{{'position.top.right' | translate}}</option>\n" +
-    "      <option value=\"middle-left\">{{'position.middle.left' | translate}}</option>\n" +
-    "      <option value=\"middle-center\">{{'position.middle.center' | translate}}</option>\n" +
-    "      <option value=\"middle-right\">{{'position.middle.right' | translate}}</option>\n" +
-    "      <option value=\"bottom-left\">{{'position.bottom.left' | translate}}</option>\n" +
-    "      <option value=\"bottom-center\">{{'position.bottom.center' | translate}}</option>\n" +
-    "      <option value=\"bottom-right\">{{'position.bottom.right' | translate}}</option>\n" +
-    "    </select>\n" +
-    "  </div>\n" +
-    "</div>\n" +
-    "");
-}]);
-})();
-
-(function () {
-  "use strict";
-
-  angular.module("risevision.widget.common.background-image-setting", [
-    "risevision.common.i18n",
-    "colorpicker.module",
-    "risevision.widget.common.url-field",
-    "risevision.widget.common.position-setting",
-    "risevision.widget.common.background-image"
-  ])
-    .directive("backgroundImageSetting", ["$templateCache", "$log", function ($templateCache/*, $log*/) {
-      return {
-        restrict: "E",
-        scope: {
-          background: "=",
-          companyId: "@"
-        },
-        template: $templateCache.get("_angular/background-image-setting/background-image-setting.html"),
-        link: function (scope) {
-
-          scope.defaultSetting = {
-            color: "rgba(255,255,255,0)",
-            useImage: false,
-            image: {
-              url: "",
-              position: "top-left",
-              scale: true
-            }
-          };
-
-          scope.defaults = function(obj) {
-            if (obj) {
-              for (var i = 1, length = arguments.length; i < length; i++) {
-                var source = arguments[i];
-
-                for (var prop in source) {
-                  if (obj[prop] === void 0) {
-                    obj[prop] = source[prop];
-                  }
-                }
-              }
-            }
-            return obj;
-          };
-
-          scope.imageLoaded = false;
-          scope.imageUrl = "";
-
-          scope.$watch("background", function(background) {
-            scope.defaults(background, scope.defaultSetting);
-          });
-
-          scope.$watch("background.image.url", function (newUrl, oldUrl) {
-            /* In the context of being used in a widget settings, this scenario happens only once when settings
-             initialize and have previously been saved. This will trigger the image to load/display.
-             */
-            if (newUrl !== "" && typeof oldUrl === "undefined") {
-              scope.imageUrl = newUrl;
-            }
-          });
-
-          scope.$on("backgroundImageLoad", function (event, loaded) {
-            scope.$apply(function () {
-              scope.imageLoaded = loaded;
-            });
-
-          });
-
-          scope.$on("urlFieldBlur", function () {
-            scope.imageUrl = scope.background.image.url;
-          });
-
-        }
-      };
-    }]);
-}());
-
-(function () {
-  "use strict";
-
-  angular.module("risevision.widget.common.background-image", [])
-    .directive("backgroundImage", ["$log", function (/*$log*/) {
-      return {
-        restrict: "A",
-        link: function(scope, element) {
-          element.bind("load", function() {
-            scope.$emit("backgroundImageLoad", true);
-          });
-
-          element.bind("error", function () {
-            scope.$emit("backgroundImageLoad", false);
-          });
-        }
-      };
-    }]);
-}());
-
-(function(module) {
-try { app = angular.module("risevision.widget.common.background-image-setting"); }
-catch(err) { app = angular.module("risevision.widget.common.background-image-setting", []); }
-app.run(["$templateCache", function($templateCache) {
-  "use strict";
-  $templateCache.put("_angular/background-image-setting/background-image-setting.html",
-    "<!-- Color -->\n" +
-    "<div class=\"row\">\n" +
-    "  <div class=\"col-md-3\">\n" +
-    "      <div class=\"input-group\">\n" +
-    "        <input class=\"form-control\" colorpicker=\"rgba\" colorpicker-parent=\"true\" background-setting type=\"text\" ng-model=\"background.color\">\n" +
-    "        <span class=\"input-group-addon color-wheel\"></span>\n" +
-    "      </div>\n" +
-    "  </div>\n" +
-    "</div>\n" +
-    "<!-- Image Choice -->\n" +
-    "<div class=\"checkbox\">\n" +
-    "  <label>\n" +
-    "    <input name=\"choice\" type=\"checkbox\" ng-model=\"background.useImage\"> {{\"background.choice\" | translate}}\n" +
-    "  </label>\n" +
-    "</div>\n" +
-    "<div id=\"backgroundImageControls\" ng-if=\"background.useImage\">\n" +
-    "  <!-- Image Placeholder -->\n" +
-    "  <div class=\"form-group\">\n" +
-    "    <div ng-if=\"!imageLoaded\" class=\"image-placeholder\">\n" +
-    "      <i class=\"fa fa-image\"></i>\n" +
-    "    </div>\n" +
-    "    <!-- Image -->\n" +
-    "    <div ng-show=\"imageLoaded\" class=\"row\">\n" +
-    "      <div class=\"col-xs-5 col-sm-3 col-md-2\">\n" +
-    "        <img ng-src=\"{{imageUrl}}\" background-image class=\"img-rounded img-responsive\">\n" +
-    "      </div>\n" +
-    "    </div>\n" +
-    "  </div>\n" +
-    "  <!-- Image URL -->\n" +
-    "  <url-field id=\"backgroundImageUrl\" url=\"background.image.url\"\n" +
-    "             file-type=\"image\"\n" +
-    "             hide-label=\"true\"\n" +
-    "             company-id=\"{{companyId}}\"\n" +
-    "             ng-model=\"urlentry\" valid></url-field>\n" +
-    "  <!-- Position -->\n" +
-    "  <position-setting position=\"background.image.position\" hide-label=\"true\"></position-setting>\n" +
-    "  <!-- Scale to fit -->\n" +
-    "  <div class=\"checkbox\">\n" +
-    "    <label>\n" +
-    "      <input name=\"scale\" type=\"checkbox\" ng-model=\"background.image.scale\"> {{\"background.image.scale\" | translate}}\n" +
-    "    </label>\n" +
-    "  </div>\n" +
-    "</div>\n" +
-    "\n" +
-    "");
-}]);
-})();
-
-(function () {
-  "use strict";
-
-  angular.module("risevision.widget.common.video-setting", [
-    "risevision.common.i18n",
-    "ui.bootstrap-slider"
-  ])
-    .directive("videoSetting", ["$templateCache", "$log", function ($templateCache/*, $log*/) {
-      return {
-        restrict: "E",
-        scope: {
-          video: "="
-        },
-        template: $templateCache.get("_angular/video-setting/video-setting.html"),
-        link: function ($scope) {
-          $scope.defaultSetting = {
-            autoplay: true,
-            scaleToFit: true,
-            volume: 50
-          };
-
-          $scope.defaults = function(obj) {
-            if (obj) {
-              for (var i = 1, length = arguments.length; i < length; i++) {
-                var source = arguments[i];
-
-                for (var prop in source) {
-                  if (obj[prop] === void 0) {
-                    obj[prop] = source[prop];
-                  }
-                }
-              }
-            }
-            return obj;
-          };
-
-          $scope.$watch("video", function(video) {
-            $scope.defaults(video, $scope.defaultSetting);
-          });
-
-        }
-      };
-    }]);
-}());
-
-(function(module) {
-try { app = angular.module("risevision.widget.common.video-setting"); }
-catch(err) { app = angular.module("risevision.widget.common.video-setting", []); }
-app.run(["$templateCache", function($templateCache) {
-  "use strict";
-  $templateCache.put("_angular/video-setting/video-setting.html",
-    "<div class=\"section\">\n" +
-    "  <h5>{{\"video.heading\" | translate}}</h5>\n" +
-    "  <div class=\"form-group\">\n" +
-    "    <div class=\"checkbox\">\n" +
-    "      <label>\n" +
-    "        <input name=\"video-autoplay\" type=\"checkbox\" ng-model=\"video.autoplay\"> {{\"video.autoplay.label\" | translate}}\n" +
-    "      </label>\n" +
-    "    </div>\n" +
-    "  </div>\n" +
-    "  <div class=\"checkbox\">\n" +
-    "    <label>\n" +
-    "      <input name=\"video-scale\" type=\"checkbox\" ng-model=\"video.scaleToFit\"> {{\"widgets.scale-to-fit\" | translate}}\n" +
-    "    </label>\n" +
-    "  </div>\n" +
-    "  <label>{{\"video.volume.label\" | translate}}</label>\n" +
-    "  <div>\n" +
-    "    <slider orientation=\"horizontal\" handle=\"round\" ng-model=\"video.volume\" min=\"0\" step=\"1\" max=\"100\"></slider>\n" +
-    "  </div>\n" +
-    "</div>\n" +
-    "");
-}]);
-})();
-
 /* global config: true */
 /* exported config */
 if (typeof config === "undefined") {
   var config = {
-    // variables go here
+    SKIN: "skin/RVSkin.xml"
   };
 
   if (typeof angular !== "undefined") {
     angular.module("risevision.common.i18n.config", [])
-      .constant("LOCALES_PREFIX", "components/rv-common-i18n/dist/locales/translation_")
+      .constant("LOCALES_PREFIX", "locales/translation_")
       .constant("LOCALES_SUFIX", ".json");
-
-    angular.module("risevision.widget.common.storage-selector.config")
-      .value("STORAGE_MODAL", "https://storage-stage.risevision.com/rva-test/dist/storage-modal.html#/files/");
   }
 }
 
 angular.module("risevision.widget.video.settings", [
   "risevision.common.i18n",
   "risevision.widget.common",
-  "risevision.widget.common.video-setting",
   "risevision.widget.common.widget-button-toolbar",
   "risevision.widget.common.tooltip",
-  "risevision.widget.common.background-image-setting",
-  "risevision.widget.common.url-field"]);
+  "risevision.widget.common.url-field",
+  "ui.bootstrap-slider"
+]);
 
 angular.module("risevision.widget.common", []);
 
@@ -29304,19 +28564,9 @@ angular.module("risevision.widget.video.settings")
       $scope.$watch("settings.additionalParams.url", function (url) {
         if (typeof url !== "undefined" && url !== "") {
           if ($scope.settingsForm.videoUrl.$valid) {
-            $scope.settings.additionalParams.videoStorage = commonSettings.getStorageUrlData(url);
+            $scope.settings.additionalParams.storage = commonSettings.getStorageUrlData(url);
           } else {
-            $scope.settings.additionalParams.videoStorage = {};
-          }
-        }
-      });
-
-      $scope.$watch("settings.additionalParams.background.image.url", function (url) {
-        if (typeof url !== "undefined" && url !== "") {
-          if ($scope.settingsForm.background.$valid) {
-            $scope.settings.additionalParams.backgroundStorage = commonSettings.getStorageUrlData(url);
-          } else {
-            $scope.settings.additionalParams.backgroundStorage = {};
+            $scope.settings.additionalParams.storage = {};
           }
         }
       });
@@ -29326,9 +28576,12 @@ angular.module("risevision.widget.video.settings")
     params: {},
     additionalParams: {
       url: "",
-      videoStorage: {},
-      video: {},
-      background: {},
-      backgroundStorage: {}
+      storage: {},
+      video: {
+        scaleToFit: true,
+        volume: 50,
+        controls: true,
+        autoplay: true
+      }
     }
   });

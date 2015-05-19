@@ -37,17 +37,37 @@
             <!-- URL -->
             <url-field id="videoUrl" name="videoUrl" url="settings.additionalParams.url"
                        company-id="{{settings.params.companyId}}"
+                       storage-type="single-file"
                        file-type="video"
                        ng-model="videourlentry" valid></url-field>
-            <!-- Video Setting -->
-            <video-setting id="videoSetting" video="settings.additionalParams.video"></video-setting>
-            <!-- Background Setting -->
+            <!-- Video -->
             <div class="section">
-              <h5>{{"background.heading" | translate}}</h5>
-              <background-image-setting id="background" name="background"
-                                        background="settings.additionalParams.background"
-                                        company-id="{{settings.params.companyId}}"
-                                        ng-model="backgroundsetting" valid></background-image-setting>
+              <h5>{{"video.heading" | translate}}</h5>
+              <!-- Scale To Fit -->
+              <div class="checkbox">
+                <label>
+                  <input name="video-scale" type="checkbox" ng-model="settings.additionalParams.video.scaleToFit"> {{"widgets.scale-to-fit" | translate}}
+                </label>
+              </div>
+              <!-- Volume -->
+              <label>{{"video.volume.label" | translate}}</label>
+              <div>
+                <slider orientation="horizontal" handle="round" ng-model="settings.additionalParams.video.volume" min="0" step="1" max="100"></slider>
+              </div>
+              <!-- Use Controls -->
+              <div class="checkbox">
+                <label>
+                  <input type="checkbox" ng-model="settings.additionalParams.video.controls"> {{"widget-video-folder.controls" | translate}}
+                </label>
+              </div>
+              <div class="form-group" ng-show="settings.additionalParams.video.controls">
+                <!-- Autoplay -->
+                <div class="checkbox">
+                  <label>
+                    <input type="checkbox" ng-model="settings.additionalParams.video.autoplay"> {{"video.autoplay.label" | translate}}
+                  </label>
+                </div>
+              </div>
             </div>
           </form>
         </div>

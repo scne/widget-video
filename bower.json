@@ -1,6 +1,6 @@
 {
   "name": "widget-video",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "homepage": "https://github.com/Rise-Vision/widget-video",
   "authors": [
     "Rise Vision"
@@ -25,25 +25,26 @@
     "reports"
   ],
   "devDependencies": {
-    "angular-mocks": "1.2.18",
+    "angular-mocks": "~1.3.0",
     "q": "1.0.1",
     "sinon": "~1.10.2"
   },
   "dependencies": {
-    "angular": "1.2.18",
+    "angular": "~1.3.0",
+    "angular-bootstrap": "~0.11.1",
     "angular-bootstrap-slider": "~0.0.6",
     "angular-route": "1.2.18",
-    "common-style": "https://github.com/Rise-Vision/common-style.git",
-    "rv-angular-bootstrap-colorpicker": "https://github.com/Rise-Vision/angular-bootstrap-colorpicker.git#3.0.14",
-    "ui-bootstrap": "~0.11.0",
-    "webcomponentsjs": "~0.5.2",
-    "web-component-rise-storage": "https://github.com/Rise-Vision/web-component-rise-storage.git#0.1.7",
-    "widget-common": "https://github.com/Rise-Vision/widget-common.git#0.1.4",
-    "widget-settings-ui-components": "https://github.com/Rise-Vision/widget-settings-ui-components.git#0.1.11",
+    "rv-common-style": "https://github.com/Rise-Vision/common-style.git",
+    "webcomponentsjs": "~0.6.0",
+    "web-component-rise-storage": "https://github.com/Rise-Vision/web-component-rise-storage.git#1.0.7",
+    "widget-common": "https://github.com/Rise-Vision/widget-common.git#0.1.10",
+    "widget-settings-ui-components": "https://github.com/Rise-Vision/widget-settings-ui-components.git#0.1.12",
     "widget-settings-ui-core": "https://github.com/Rise-Vision/widget-settings-ui-core.git#0.1.11"
   },
   "resolutions": {
+    "angular": "~1.3.0",
+    "angular-mocks": "~1.3.0",
     "jquery": "1.11.0",
-    "common-style": "~1.1.11"
+    "rv-common-style": "1.1.12"
   }
 }

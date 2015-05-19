@@ -18,9 +18,7 @@
     var validUrl = "http://www.valid-url.com",
       invalidUrl = "http://w",
       invalidVideoUrl = validUrl + "/video.mpg",
-      validVideoUrl = validUrl + "/video.webm",
-      validImageUrl = validUrl + "/image.jpg",
-      invalidImageUrl = validUrl + "/image.pdf";
+      validVideoUrl = validUrl + "/video.webm";
 
     beforeEach(function () {
       browser.get("/src/settings-e2e.html");
@@ -31,14 +29,8 @@
       expect(element(by.css("button#save")).isPresent()).to.eventually.be.true;
       expect(element(by.css("button#cancel")).isPresent()).to.eventually.be.true;
 
-      // Video Setting
-      expect(element(by.css("#videoSetting .slider")).isPresent()).to.eventually.be.true;
-
-      // Background Image Setting
-      expect(element(by.css("#background input[colorpicker]")).isPresent()).to.eventually.be.true;
-      expect(element(by.css("#background .color-wheel")).isPresent()).to.eventually.be.true;
-
-
+      // URL Field
+      expect(element(by.model("url")).isPresent()).to.eventually.be.true;
     });
 
     it("Should correctly load default settings", function () {
@@ -48,12 +40,21 @@
       // form should be invalid due to URL Field empty entry
       expect(element(by.css("form[name='settingsForm'].ng-invalid")).isPresent()).to.eventually.be.true;
 
-      // URL Field input value should be empty
-      expect(element(by.css("#videoUrl input[name='url']")).getAttribute("value")).to.eventually.equal("");
+      // Video URL input value should be empty
+      expect(element(by.model("url")).getAttribute("value")).to.eventually.equal("");
+
+      // Scale To Fit should be true
+      expect(element(by.model("settings.additionalParams.video.scaleToFit")).isSelected()).to.eventually.be.true;
+
+      // Show Video Controls should be true
+      expect(element(by.model("settings.additionalParams.video.controls")).isSelected()).to.eventually.be.true;
+
+      // Autoplay should be true
+      expect(element(by.model("settings.additionalParams.video.autoplay")).isSelected()).to.eventually.be.true;
     });
 
     it("Should be invalid form and Save button disabled due to invalid URL", function () {
-      element(by.css("#videoUrl input[name='url']")).sendKeys(invalidUrl);
+      element(by.model("url")).sendKeys(invalidUrl);
 
       // save button should be disabled
       expect(element(by.css("button#save[disabled=disabled")).isPresent()).to.eventually.be.true;
@@ -63,7 +64,7 @@
     });
 
     it("Should be invalid form and Save button disabled due to invalid video file format", function () {
-      element(by.css("#videoUrl input[name='url']")).sendKeys(invalidVideoUrl);
+      element(by.model("url")).sendKeys(invalidVideoUrl);
 
       // save button should be disabled
       expect(element(by.css("button#save[disabled=disabled")).isPresent()).to.eventually.be.true;
@@ -73,7 +74,7 @@
     });
 
     it("Should be valid form and Save button enabled due to valid URL entry and valid file format", function () {
-      element(by.css("#videoUrl input[name='url']")).sendKeys(validVideoUrl);
+      element(by.model("url")).sendKeys(validVideoUrl);
 
       // save button should be enabled
       expect(element(by.css("button#save[disabled=disabled")).isPresent()).to.eventually.be.false;
@@ -82,32 +83,10 @@
       expect(element(by.css("form[name='settingsForm'].ng-invalid")).isPresent()).to.eventually.be.false;
     });
 
-    it("Should be invalid form and Save button disabled due to invalid background image URL", function () {
-      element(by.css("#videoUrl input[name='url']")).sendKeys(validVideoUrl);
+    it("Should hide Autoplay and Resume if Show Video Controls unchecked", function () {
+      element(by.model("settings.additionalParams.video.controls")).click();
 
-      element(by.css("#background input[name='choice']")).click();
-
-      element(by.css("#background input[name='url']")).sendKeys(invalidImageUrl);
-
-      // save button should be disabled
-      expect(element(by.css("button#save[disabled=disabled")).isPresent()).to.eventually.be.true;
-
-      // form should be invalid due to incorrect file format
-      expect(element(by.css("form[name='settingsForm'].ng-invalid")).isPresent()).to.eventually.be.true;
-    });
-
-    it("Should be valid form and Save button enabled due to valid background image URL", function () {
-      element(by.css("#videoUrl input[name='url']")).sendKeys(validVideoUrl);
-
-      element(by.css("#background input[name='choice']")).click();
-
-      element(by.css("#background input[name='url']")).sendKeys(validImageUrl);
-
-      // save button should be enabled
-      expect(element(by.css("button#save[disabled=disabled")).isPresent()).to.eventually.be.false;
-
-      // form should be valid due to valid URL and valid format
-      expect(element(by.css("form[name='settingsForm'].ng-invalid")).isPresent()).to.eventually.be.false;
+      expect(element(by.model("settings.additionalParams.video.autoplay")).isDisplayed()).to.eventually.be.false;
     });
 
     it("Should correctly save settings", function (done) {
@@ -115,28 +94,17 @@
         params: {},
         additionalParams: {
           "url": validVideoUrl,
-          "videoStorage": {},
+          "storage": {},
           "video": {
-            "autoplay":false,
-            "scaleToFit":true,
-            "volume":50
-          },
-          "background": {
-            "color": "rgba(255,255,255,0)",
-            "useImage": false,
-            "image": {
-              "url": "",
-              "position": "top-left",
-              "scale": true
-            }
-          },
-          "backgroundStorage": {}
+            scaleToFit: true,
+            volume: 50,
+            controls: true,
+            autoplay: true
+          }
         }
       };
 
-      element(by.css("#videoUrl input[name='url']")).sendKeys(validVideoUrl);
-
-      element(by.css("#videoSetting input[name='video-autoplay']")).click();
+      element(by.model("url")).sendKeys(validVideoUrl);
 
       element(by.id("save")).click();
 
