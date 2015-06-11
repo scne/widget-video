@@ -69,26 +69,9 @@ function getPlaybackData() {
 }
 
 function PlayerJW() {
-  var isLoading = true;
 
   function onVideoComplete() {
     doneEvent();
-  }
-
-  function onPlay() {
-    if (isLoading) {
-      isLoading = false;
-
-      jwplayer().pause();
-      jwplayer().setMute(false);
-      jwplayer().setVolume(volume);
-
-      if (controls && !autoPlay) {
-        jwplayer().setControls(true);
-      }
-
-      readyEvent();
-    }
   }
 
   function onPlayerError(error) {
@@ -156,22 +139,25 @@ function PlayerJW() {
 
       document.getElementById("player").className += " notransition";
 
+      // Bugfix - issue #36 (JWPlayer context menu)
+      document.getElementById("player_menu").className += " disable-context-menu";
+
+
       jwplayer().onComplete(function () {
         onVideoComplete();
-      });
-
-      jwplayer().onPlay(function () {
-        onPlay();
       });
 
       jwplayer().onError(function (error) {
         onPlayerError(error);
       });
 
-      setTimeout(function () {
-        // need to test if there is an error playing first video
-        jwplayer().play();
-      }, 200);
+      jwplayer().setVolume(volume);
+
+      if (controls && !autoPlay) {
+        jwplayer().setControls(true);
+      }
+
+      readyEvent();
 
     });
   };

@@ -47,6 +47,7 @@ body {
 #videoContainer {
   /* Positioning */
   position: relative;
+  background-color: #000000;
 }
 
 
