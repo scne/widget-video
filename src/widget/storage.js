@@ -1,3 +1,5 @@
+/* global config */
+
 var RiseVision = RiseVision || {};
 RiseVision.Video = RiseVision.Video || {};
 
@@ -17,26 +19,26 @@ RiseVision.Video.Storage = function (data) {
     }
 
     storage.addEventListener("rise-storage-response", function(e) {
-      var url;
-
-      if (e.detail && e.detail.files && e.detail.files.length > 0) {
-        url = e.detail.files[0].url;
+      if (e.detail && e.detail.url) {
 
         if (_initialLoad) {
           _initialLoad = false;
 
-          RiseVision.Video.onStorageInit(url);
-
-        } else {
-          RiseVision.Video.onStorageRefresh(url);
+          RiseVision.Video.onStorageInit(e.detail.url);
+        }
+        else {
+          // check for "changed" property and ensure it is true
+          if (e.detail.hasOwnProperty("changed") && e.detail.changed) {
+            RiseVision.Video.onStorageRefresh(e.detail.url);
+          }
         }
       }
-
     });
 
     storage.setAttribute("folder", data.storage.folder);
     storage.setAttribute("fileName", data.storage.fileName);
     storage.setAttribute("companyId", data.storage.companyId);
+    storage.setAttribute("env", config.STORAGE_ENV);
     storage.go();
   }
 

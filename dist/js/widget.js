@@ -2,7 +2,8 @@
 /* exported config */
 if (typeof config === "undefined") {
   var config = {
-    SKIN: "skin/RVSkin.xml"
+    SKIN: "skin/RVSkin.xml",
+    STORAGE_ENV: "prod"
   };
 
   if (typeof angular !== "undefined") {
@@ -211,6 +212,8 @@ RiseVision.Video = (function (gadgets) {
 
 })(gadgets);
 
+/* global config */
+
 var RiseVision = RiseVision || {};
 RiseVision.Video = RiseVision.Video || {};
 
@@ -230,26 +233,26 @@ RiseVision.Video.Storage = function (data) {
     }
 
     storage.addEventListener("rise-storage-response", function(e) {
-      var url;
-
-      if (e.detail && e.detail.files && e.detail.files.length > 0) {
-        url = e.detail.files[0].url;
+      if (e.detail && e.detail.url) {
 
         if (_initialLoad) {
           _initialLoad = false;
 
-          RiseVision.Video.onStorageInit(url);
-
-        } else {
-          RiseVision.Video.onStorageRefresh(url);
+          RiseVision.Video.onStorageInit(e.detail.url);
+        }
+        else {
+          // check for "changed" property and ensure it is true
+          if (e.detail.hasOwnProperty("changed") && e.detail.changed) {
+            RiseVision.Video.onStorageRefresh(e.detail.url);
+          }
         }
       }
-
     });
 
     storage.setAttribute("folder", data.storage.folder);
     storage.setAttribute("fileName", data.storage.fileName);
     storage.setAttribute("companyId", data.storage.companyId);
+    storage.setAttribute("env", config.STORAGE_ENV);
     storage.go();
   }
 
@@ -396,7 +399,7 @@ RiseVision.Common.Video.FrameController = function () {
   }
 
   function polymerReady() {
-    window.removeEventListener("polymer-ready", polymerReady);
+    window.removeEventListener("WebComponentsReady", polymerReady);
 
     if (id && id !== "") {
       gadgets.rpc.register("rscmd_play_" + id, play);
@@ -408,7 +411,7 @@ RiseVision.Common.Video.FrameController = function () {
     }
   }
 
-  window.addEventListener("polymer-ready", polymerReady);
+  window.addEventListener("WebComponentsReady", polymerReady);
 
 })(window, gadgets);
 
