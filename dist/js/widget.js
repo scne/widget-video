@@ -2,7 +2,8 @@
 /* exported config */
 if (typeof config === "undefined") {
   var config = {
-    SKIN: "skin/RVSkin.xml"
+    SKIN: "skin/RVSkin.xml",
+    STORAGE_ENV: "prod"
   };
 
   if (typeof angular !== "undefined") {
@@ -32,10 +33,9 @@ RiseVision.Video = (function (gadgets) {
 
   var _currentFile, _currentFrame;
 
-  var _frameCount = 0,
-    _separator = "",
-    _refreshDuration = 300000,  // 5 minutes
-    _timer = null;
+  var _separator = "",
+    _refreshDuration = 900000,  // 15 minutes
+    _refreshIntervalId = null;
 
   /*
    *  Private Methods
@@ -46,6 +46,8 @@ RiseVision.Video = (function (gadgets) {
   }
 
   function _ready() {
+    console.log("video.js::_ready()", _additionalParams.storage.fileName);
+
     gadgets.rpc.call("", "rsevent_ready", null, _prefs.getString("id"),
       true, true, true, true, true);
   }
@@ -56,54 +58,16 @@ RiseVision.Video = (function (gadgets) {
     // add the first frame and create its player
     _frameController.add(0);
     _currentFrame = 0;
-    _frameCount = 1;
     _frameController.createFramePlayer(0, _additionalParams, _currentFile, config.SKIN, "player.html");
   }
 
-  function _refreshFrame(frameIndex) {
-    _frameController.remove(frameIndex, function () {
-      _frameController.add(frameIndex);
-      _frameController.hide(frameIndex);
-      _frameController.createFramePlayer(frameIndex, _additionalParams, _currentFile, config.SKIN, "player.html");
-    });
-  }
-
-  function _refresh() {
-    var currentFrameObj = _frameController.getFrameObject(_currentFrame),
-      hiddenFrameIndex = (_currentFrame === 0) ? 1 : 0,
-      currentFrameData;
-
-    if (!_isStorageFile) {
-      clearTimeout(_timer);
-      _timer = null;
-    }
-
-    // It is best to let refreshing the frame playlist happen in the normal cycle of frame swapping (playlist completion)
-    // Below is the only criteria for safely forcing a refresh of hidden frame while Widget is in a "play" or "pause" state
-
-    // Widget is in a state of "play" or "pause" and video has not completed. A hidden frame definitely exists
-    if (currentFrameObj) {
-      // Only if there are no video controls.
-      // User interacting with controls, particularly seeking the video to end, would cause issues
-      if (!_additionalParams.video.controls) {
-        currentFrameData = currentFrameObj.getPlaybackData();
-
-        // To be safe, only refresh the frame that's currently hidden if at least 15 seconds are left of video
-        if ((currentFrameData.duration - currentFrameData.position) >= 15) {
-          _refreshFrame(hiddenFrameIndex);
-        }
-      }
-    }
-  }
-
-  function _refreshTimer(duration) {
-    clearTimeout(_timer);
-
-    _timer = setTimeout(function videoRefresh() {
+  function _refreshInterval(duration) {
+    _refreshIntervalId = setInterval(function videoRefresh() {
       // set new value of non rise-storage url with a cachebuster
       _currentFile = _additionalParams.url + _separator + "cb=" + new Date().getTime();
 
-      _refresh();
+      // in case refreshed file fixes an error with previous file, ensure flag is removed so playback is attempted again
+      _playbackError = false;
 
     }, duration);
   }
@@ -120,7 +84,8 @@ RiseVision.Video = (function (gadgets) {
   function onStorageRefresh(url) {
     _currentFile = url;
 
-    _refresh();
+    // in case refreshed file fixes an error with previous file, ensure flag is removed so playback is attempted again
+    _playbackError = false;
   }
 
   function pause() {
@@ -138,22 +103,10 @@ RiseVision.Video = (function (gadgets) {
       if (frameObj) {
         frameObj.play();
       } else {
-        // set current frame to be the one visible
-        _currentFrame = (_currentFrame === 0) ? 1 : 0;
-
-        // play the current frame video
-        frameObj = _frameController.getFrameObject(_currentFrame);
-        frameObj.play();
-
-        if (!_isStorageFile && !_timer) {
-          // restart the refresh timer
-          _refreshTimer(_refreshDuration);
-        }
 
         // re-add previously removed frame and create the player, but hide visibility
-        _frameController.add(((_currentFrame === 0) ? 1 : 0));
-        _frameController.hide(((_currentFrame === 0) ? 1 : 0));
-        _frameController.createFramePlayer(((_currentFrame === 0) ? 1 : 0), _additionalParams, _currentFile, config.SKIN, "player.html");
+        _frameController.add(0);
+        _frameController.createFramePlayer(0, _additionalParams, _currentFile, config.SKIN, "player.html");
 
       }
     } else {
@@ -164,46 +117,32 @@ RiseVision.Video = (function (gadgets) {
   }
 
   function playerEnded() {
-    if (_playbackError) {
-      // This flag only gets set upon a refresh of hidden frame and there was an error in setup or video
-      _frameController.remove(_currentFrame);
-      _frameController.remove((_currentFrame === 0) ? 1 : 0);
-
+    _frameController.remove(_currentFrame, function () {
       _done();
-
-    } else {
-      _frameController.show((_currentFrame === 0) ? 1 : 0);
-      _frameController.remove(_currentFrame, function () {
-        _done();
-      });
-    }
-
+    });
   }
 
   function playerReady() {
+    var frameObj;
+
     if (!_initialized) {
-      if (_frameCount === 2) {
-        // both frames have been created and loaded, can notify Viewer widget is ready
-        _initialized = true;
+      _initialized = true;
 
-        if (!_isStorageFile) {
-          _refreshTimer(_refreshDuration);
-        }
-
-        _ready();
-
-      } else {
-        // first frame player was successful and ready, create the second one but hide it
-        _frameController.add(1);
-        _frameController.hide(1);
-        _frameCount = 2;
-        _frameController.createFramePlayer(1, _additionalParams, _currentFile, config.SKIN, "player.html");
+      if (!_isStorageFile && _refreshIntervalId === null) {
+        _refreshInterval(_refreshDuration);
       }
+
+      _ready();
+
+    } else {
+      frameObj = _frameController.getFrameObject(_currentFrame);
+      frameObj.play();
     }
   }
 
   function setAdditionalParams(names, values) {
     var str;
+
     if (Array.isArray(names) && names.length > 0 && names[0] === "additionalParams") {
       if (Array.isArray(values) && values.length > 0) {
         _additionalParams = JSON.parse(values[0]);
@@ -240,22 +179,17 @@ RiseVision.Video = (function (gadgets) {
     console.debug("video-folder::playerError()", error);
 
     if (!_initialized) {
-      // Widget has not sent "ready" yet and there is an error (setup or playback of video)
+      // Widget has not sent "ready" yet so there has been a setup error
       _frameController.remove(_currentFrame);
 
       // do nothing more, ensure "ready" is not sent to Viewer so that this widget can be skipped
 
     } else {
-      // This only happens in the event of a refresh. New file caused an error in setup or video has an issue
-      // The error event will be coming from the currently hidden frame when it got recreated with a new file to use
+      // flag the video has an error
       _playbackError = true;
 
-      if (!_isStorageFile) {
-        // remove the refresh timer (if it's running)
-        clearTimeout(_timer);
-        _timer = null;
-      }
-
+      // act as though video has ended
+      playerEnded();
     }
 
   }
@@ -278,6 +212,8 @@ RiseVision.Video = (function (gadgets) {
 
 })(gadgets);
 
+/* global config */
+
 var RiseVision = RiseVision || {};
 RiseVision.Video = RiseVision.Video || {};
 
@@ -297,26 +233,26 @@ RiseVision.Video.Storage = function (data) {
     }
 
     storage.addEventListener("rise-storage-response", function(e) {
-      var url;
-
-      if (e.detail && e.detail.files && e.detail.files.length > 0) {
-        url = e.detail.files[0].url;
+      if (e.detail && e.detail.url) {
 
         if (_initialLoad) {
           _initialLoad = false;
 
-          RiseVision.Video.onStorageInit(url);
-
-        } else {
-          RiseVision.Video.onStorageRefresh(url);
+          RiseVision.Video.onStorageInit(e.detail.url);
+        }
+        else {
+          // check for "changed" property and ensure it is true
+          if (e.detail.hasOwnProperty("changed") && e.detail.changed) {
+            RiseVision.Video.onStorageRefresh(e.detail.url);
+          }
         }
       }
-
     });
 
     storage.setAttribute("folder", data.storage.folder);
     storage.setAttribute("fileName", data.storage.fileName);
     storage.setAttribute("companyId", data.storage.companyId);
+    storage.setAttribute("env", config.STORAGE_ENV);
     storage.go();
   }
 
@@ -463,7 +399,7 @@ RiseVision.Common.Video.FrameController = function () {
   }
 
   function polymerReady() {
-    window.removeEventListener("polymer-ready", polymerReady);
+    window.removeEventListener("WebComponentsReady", polymerReady);
 
     if (id && id !== "") {
       gadgets.rpc.register("rscmd_play_" + id, play);
@@ -475,7 +411,7 @@ RiseVision.Common.Video.FrameController = function () {
     }
   }
 
-  window.addEventListener("polymer-ready", polymerReady);
+  window.addEventListener("WebComponentsReady", polymerReady);
 
 })(window, gadgets);
 
