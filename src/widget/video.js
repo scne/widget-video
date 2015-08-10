@@ -42,6 +42,7 @@ RiseVision.Video = (function (gadgets) {
 
     // add the first frame and create its player
     _frameController.add(0);
+    _frameController.hide(0);
     _currentFrame = 0;
     _frameController.createFramePlayer(0, _additionalParams, _currentFile, config.SKIN, "player.html");
   }
@@ -89,8 +90,9 @@ RiseVision.Video = (function (gadgets) {
         frameObj.play();
       } else {
 
-        // re-add previously removed frame and create the player, but hide visibility
+        // add frame and create the player, but hide visibility of frame container until "ready" is received
         _frameController.add(0);
+        _frameController.hide(0);
         _frameController.createFramePlayer(0, _additionalParams, _currentFile, config.SKIN, "player.html");
 
       }
@@ -109,6 +111,9 @@ RiseVision.Video = (function (gadgets) {
 
   function playerReady() {
     var frameObj;
+
+    // make the frame container visible now that ready has been received
+    _frameController.show(_currentFrame);
 
     if (!_initialized) {
       _initialized = true;
