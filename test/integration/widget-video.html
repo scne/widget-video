@@ -31,13 +31,44 @@
 <script>
   suite("Video Widget", function() {
 
-    var storage = document.querySelector("rise-storage");
-    suiteSetup(function() {
-    });
+    var storage = document.querySelector("rise-storage"),
+      responded = false,
+      listener;
 
-    suite("rise-storage configuration", function () {
+    suite("Storage Initialization - file added", function () {
+      var check = function(done) {
+        if (responded) {
+          done();
+        }
+        else {
+          setTimeout(function() {
+            check(done)
+          }, 1000);
+        }
+      },
+        onInitStub = sinon.stub(RiseVision.Video, "onStorageInit", function(){});
+
+      suiteSetup(function() {
+        listener = function(response) {
+          responded = true;
+          storage.removeEventListener("rise-storage-response", listener);
+        };
+
+        storage.addEventListener("rise-storage-response", listener);
+
+      });
+
+      suiteTeardown(function() {
+        RiseVision.Video.onStorageInit.restore();
+      });
+
+      // Don't run the tests until rise-storage-response has fired.
+      setup(function (done) {
+        check(done);
+      });
+
       test("should set folder attribute of storage component", function() {
-        assert.equal(storage.folder, "Widgets/");
+        assert.equal(storage.folder, "Widgets/videos/");
       });
       test("should set filename attribute of storage component", function() {
         assert.equal(storage.filename, "a_food_show.webm");
@@ -48,6 +79,32 @@
       test("should set env attribute of storage component", function() {
         assert.equal(storage.env, config.STORAGE_ENV);
       });
+      test("RiseVision.Video.onStorageInit should be called", function() {
+        assert(onInitStub.calledOnce);
+      });
+    });
+
+    suite("Storage Refresh - file changed", function() {
+      var onRefreshStub = sinon.stub(RiseVision.Video, "onStorageRefresh", function(){});
+
+      suiteSetup(function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-response", {
+          "detail": {
+            "changed": true,
+            "url": "https://storage.googleapis.com/risemedialibrary-b428b4e8-c8b9-41d5-8a10-b4193c789443/Widgets%2Fvideos%2Fbig_buck_bunny.webm"
+          },
+          "bubbles": true
+        }));
+      });
+
+      suiteTeardown(function() {
+        RiseVision.Video.onStorageRefresh.restore();
+      });
+
+      test("RiseVision.Video.onStorageRefresh called when file changed", function() {
+        assert(onRefreshStub.calledOnce);
+      });
+
     });
 
   });
