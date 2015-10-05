@@ -35,6 +35,10 @@ RiseVision.Video.Storage = function (data) {
       }
     });
 
+    storage.addEventListener("rise-storage-no-file", function() {
+      RiseVision.Video.noStorageFile();
+    });
+
     storage.setAttribute("folder", data.storage.folder);
     storage.setAttribute("fileName", data.storage.fileName);
     storage.setAttribute("companyId", data.storage.companyId);
