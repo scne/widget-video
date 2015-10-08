@@ -61,11 +61,16 @@
           storage.removeEventListener("rise-storage-response", listener);
         };
 
+        sinon.stub(storage.$.ping, "generateRequest", function () {
+          storage._handlePingError();
+        });
+
         storage.addEventListener("rise-storage-response", listener);
 
       });
 
       suiteTeardown(function() {
+        storage.$.ping.generateRequest.restore();
         RiseVision.Video.onStorageInit.restore();
       });
 
