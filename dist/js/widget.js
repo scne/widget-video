@@ -25,41 +25,40 @@ RiseVision.Video = (function (gadgets) {
 
   var _prefs = null,
     _storage = null,
+    _message = null,
     _frameController = null;
 
-  var _initialized = false,
-    _playbackError = false,
-    _isStorageFile = false;
+  var _playbackError = false,
+    _isStorageFile = false,
+    _viewerPaused = true;
 
-  var _currentFile, _currentFrame;
+  var _currentFrame = 0;
 
   var _separator = "",
-    _refreshDuration = 900000,  // 15 minutes
+    _currentFile = "";
+
+  var _refreshDuration = 900000,  // 15 minutes
     _refreshIntervalId = null;
+
+  var _noFileTimer = null,
+    _noFileFlag = false;
 
   /*
    *  Private Methods
    */
+  function _clearNoFileTimer() {
+    clearTimeout(_noFileTimer);
+    _noFileTimer = null;
+  }
+
   function _done() {
     gadgets.rpc.call("", "rsevent_done", null, _prefs.getString("id"));
 
   }
 
   function _ready() {
-    console.log("video.js::_ready()", _additionalParams.storage.fileName);
-
     gadgets.rpc.call("", "rsevent_ready", null, _prefs.getString("id"),
       true, true, true, true, true);
-  }
-
-  function _init() {
-    _frameController = new RiseVision.Common.Video.FrameController();
-
-    // add the first frame and create its player
-    _frameController.add(0);
-    _frameController.hide(0);
-    _currentFrame = 0;
-    _frameController.createFramePlayer(0, _additionalParams, _currentFile, config.SKIN, "player.html");
   }
 
   function _refreshInterval(duration) {
@@ -73,13 +72,40 @@ RiseVision.Video = (function (gadgets) {
     }, duration);
   }
 
+  function _startNoFileTimer() {
+    _clearNoFileTimer();
+
+    _noFileTimer = setTimeout(function () {
+      // notify Viewer widget is done
+      _done();
+    }, 5000);
+  }
+
   /*
    *  Public Methods
    */
+  function noStorageFile() {
+    _noFileFlag = true;
+    _currentFile = "";
+
+    _message.show("The selected video does not exist.");
+
+    _frameController.remove(_currentFrame, function () {
+      // if Widget is playing right now, run the timer
+      if (!_viewerPaused) {
+        _startNoFileTimer();
+      }
+    });
+  }
+
   function onStorageInit(url) {
     _currentFile = url;
 
-    _init();
+    _message.hide();
+
+    if (!_viewerPaused) {
+      play();
+    }
   }
 
   function onStorageRefresh(url) {
@@ -92,6 +118,13 @@ RiseVision.Video = (function (gadgets) {
   function pause() {
     var frameObj = _frameController.getFrameObject(_currentFrame);
 
+    _viewerPaused = true;
+
+    if (_noFileFlag) {
+      _clearNoFileTimer();
+      return;
+    }
+
     if (frameObj) {
       frameObj.pause();
     }
@@ -100,15 +133,23 @@ RiseVision.Video = (function (gadgets) {
   function play() {
     var frameObj = _frameController.getFrameObject(_currentFrame);
 
+    _viewerPaused = false;
+
+    if (_noFileFlag) {
+      _startNoFileTimer();
+      return;
+    }
+
     if (!_playbackError) {
       if (frameObj) {
         frameObj.play();
       } else {
 
-        // add frame and create the player, but hide visibility of frame container until "ready" is received
-        _frameController.add(0);
-        _frameController.hide(0);
-        _frameController.createFramePlayer(0, _additionalParams, _currentFile, config.SKIN, "player.html");
+        if (_currentFile && _currentFile !== "") {
+          // add frame and create the player
+          _frameController.add(0);
+          _frameController.createFramePlayer(0, _additionalParams, _currentFile, config.SKIN, "player.html");
+        }
 
       }
     } else {
@@ -127,19 +168,12 @@ RiseVision.Video = (function (gadgets) {
   function playerReady() {
     var frameObj;
 
-    // make the frame container visible now that ready has been received
-    _frameController.show(_currentFrame);
+    // non-storage, check if refresh interval exists yet, start it if not
+    if (!_isStorageFile && _refreshIntervalId === null) {
+      _refreshInterval(_refreshDuration);
+    }
 
-    if (!_initialized) {
-      _initialized = true;
-
-      if (!_isStorageFile && _refreshIntervalId === null) {
-        _refreshInterval(_refreshDuration);
-      }
-
-      _ready();
-
-    } else {
+    if (!_viewerPaused) {
       frameObj = _frameController.getFrameObject(_currentFrame);
       frameObj.play();
     }
@@ -158,6 +192,14 @@ RiseVision.Video = (function (gadgets) {
         _additionalParams.width = _prefs.getInt("rsW");
         _additionalParams.height = _prefs.getInt("rsH");
 
+        _message = new RiseVision.Common.Message(document.getElementById("videoContainer"),
+          document.getElementById("messageContainer"));
+
+        // show wait message while Storage initializes
+        _message.show("Please wait while your video is downloaded.");
+
+        _frameController = new RiseVision.Common.Video.FrameController();
+
         _isStorageFile = (Object.keys(_additionalParams.storage).length !== 0);
 
         if (!_isStorageFile) {
@@ -168,13 +210,13 @@ RiseVision.Video = (function (gadgets) {
 
           _currentFile = _additionalParams.url;
 
-          _init();
-
         } else {
           // create and initialize the Storage module instance
           _storage = new RiseVision.Video.Storage(_additionalParams);
           _storage.init();
         }
+
+        _ready();
 
       }
     }
@@ -183,20 +225,11 @@ RiseVision.Video = (function (gadgets) {
   function playerError(error) {
     console.debug("video-folder::playerError()", error);
 
-    if (!_initialized) {
-      // Widget has not sent "ready" yet so there has been a setup error
-      _frameController.remove(_currentFrame);
+    // flag the video has an error
+    _playbackError = true;
 
-      // do nothing more, ensure "ready" is not sent to Viewer so that this widget can be skipped
-
-    } else {
-      // flag the video has an error
-      _playbackError = true;
-
-      // act as though video has ended
-      playerEnded();
-    }
-
+    // act as though video has ended
+    playerEnded();
   }
 
   function stop() {
@@ -204,6 +237,7 @@ RiseVision.Video = (function (gadgets) {
   }
 
   return {
+    "noStorageFile": noStorageFile,
     "onStorageInit": onStorageInit,
     "onStorageRefresh": onStorageRefresh,
     "pause": pause,
@@ -252,6 +286,10 @@ RiseVision.Video.Storage = function (data) {
           }
         }
       }
+    });
+
+    storage.addEventListener("rise-storage-no-file", function() {
+      RiseVision.Video.noStorageFile();
     });
 
     storage.setAttribute("folder", data.storage.folder);
@@ -375,6 +413,77 @@ RiseVision.Common.Video.FrameController = function () {
     hide: hide,
     remove: remove,
     show: show
+  };
+};
+
+var RiseVision = RiseVision || {};
+RiseVision.Common = RiseVision.Common || {};
+
+RiseVision.Common.Message = function (mainContainer, messageContainer) {
+  "use strict";
+
+  var _active = false;
+
+  function _init() {
+    try {
+      messageContainer.style.height = mainContainer.style.height;
+    } catch (e) {
+      console.warn("Can't initialize Message - ", e.message);
+    }
+  }
+
+  /*
+   *  Public Methods
+   */
+  function hide() {
+    if (_active) {
+      // clear content of message container
+      while (messageContainer.firstChild) {
+        messageContainer.removeChild(messageContainer.firstChild);
+      }
+
+      // hide message container
+      messageContainer.style.display = "none";
+
+      // show main container
+      mainContainer.style.visibility = "visible";
+
+      _active = false;
+    }
+  }
+
+  function show(message) {
+    var fragment = document.createDocumentFragment(),
+      p;
+
+    if (!_active) {
+      // hide main container
+      mainContainer.style.visibility = "hidden";
+
+      messageContainer.style.display = "block";
+
+      // create message element
+      p = document.createElement("p");
+      p.innerHTML = message;
+      p.setAttribute("class", "message");
+      p.style.lineHeight = messageContainer.style.height;
+
+      fragment.appendChild(p);
+      messageContainer.appendChild(fragment);
+
+      _active = true;
+    } else {
+      // message already being shown, update message text
+      p = messageContainer.querySelector(".message");
+      p.innerHTML = message;
+    }
+  }
+
+  _init();
+
+  return {
+    "hide": hide,
+    "show": show
   };
 };
 
