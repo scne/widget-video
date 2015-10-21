@@ -168,6 +168,9 @@ RiseVision.Video = (function (gadgets) {
   function playerReady() {
     var frameObj;
 
+    // Ensures messaging is hidden for non-storage video file
+    _message.hide();
+
     // non-storage, check if refresh interval exists yet, start it if not
     if (!_isStorageFile && _refreshIntervalId === null) {
       _refreshInterval(_refreshDuration);
