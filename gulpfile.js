@@ -156,15 +156,20 @@
       "test/unit/settings/**/*spec.js"]}
   ));
 
-  gulp.task("test:unit:player", factory.testUnitAngular(
+  gulp.task("test:unit:widget", factory.testUnitAngular(
     {testFiles: [
+      "node_modules/widget-tester/mocks/gadget-mocks.js",
+      "src/components/widget-common/dist/config.js",
+      "src/components/widget-common/dist/logger.js",
       "src/config/test.js",
+      "src/widget/video.js",
       "src/widget/player.js",
-      "test/unit/widget/player-spec.js"]}
+      "test/unit/widget/player-spec.js",
+      "test/unit/widget/video-spec.js"]}
   ));
 
   gulp.task("test:unit", function(cb) {
-    runSequence("test:unit:player", "test:unit:settings", cb);
+    runSequence("test:unit:widget", "test:unit:settings",cb);
   });
 
   gulp.task("test:integration:rise-storage", function(cb) {

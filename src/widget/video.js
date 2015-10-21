@@ -28,6 +28,8 @@ RiseVision.Video = (function (gadgets) {
   var _noFileTimer = null,
     _noFileFlag = false;
 
+  var _logger = RiseVision.Common.Logger;
+
   /*
    *  Private Methods
    */
@@ -37,11 +39,12 @@ RiseVision.Video = (function (gadgets) {
   }
 
   function _done() {
+    logEvent({ "event": "done" });
     gadgets.rpc.call("", "rsevent_done", null, _prefs.getString("id"));
-
   }
 
   function _ready() {
+    logEvent({ "event": "ready" });
     gadgets.rpc.call("", "rsevent_ready", null, _prefs.getString("id"),
       true, true, true, true, true);
   }
@@ -66,9 +69,46 @@ RiseVision.Video = (function (gadgets) {
     }, 5000);
   }
 
+  function _getLoggerParams(params, cb) {
+    var json = {},
+      utils = RiseVision.Common.LoggerUtils,
+      url = "";
+
+    if (params.event) {
+      json.event = params.event;
+    }
+
+    if (params.eventDetails) {
+      json.event_details = params.eventDetails;
+    }
+
+    if (params.url) {
+      url = params.url;
+    }
+    else {
+      url = _currentFile;
+    }
+
+    json.file_url = url;
+    json.file_format = utils.getFileFormat(url);
+
+    utils.getIds(function(companyId, displayId) {
+      json.company_id = companyId;
+      json.display_id = displayId;
+
+      cb(json);
+    });
+  }
+
   /*
    *  Public Methods
    */
+  function logEvent(params) {
+    _getLoggerParams(params, function(json) {
+      _logger.log("video_events", json);
+    });
+  }
+
   function noStorageFile() {
     _noFileFlag = true;
     _currentFile = "";
@@ -104,6 +144,7 @@ RiseVision.Video = (function (gadgets) {
     var frameObj = _frameController.getFrameObject(_currentFrame);
 
     _viewerPaused = true;
+    logEvent({ "event": "pause" });
 
     if (_noFileFlag) {
       _clearNoFileTimer();
@@ -119,6 +160,7 @@ RiseVision.Video = (function (gadgets) {
     var frameObj = _frameController.getFrameObject(_currentFrame);
 
     _viewerPaused = false;
+    logEvent({ "event": "play" });
 
     if (_noFileFlag) {
       _startNoFileTimer();
@@ -197,7 +239,6 @@ RiseVision.Video = (function (gadgets) {
           _separator = (str.length === 1) ? "?" : "&";
 
           _currentFile = _additionalParams.url;
-
         } else {
           // create and initialize the Storage module instance
           _storage = new RiseVision.Video.Storage(_additionalParams);
@@ -205,13 +246,15 @@ RiseVision.Video = (function (gadgets) {
         }
 
         _ready();
-
       }
     }
   }
 
   function playerError(error) {
-    console.debug("video-folder::playerError()", error);
+    logEvent({
+      "event": "player error",
+      "event_details": error.type + " - " + error.message
+    });
 
     // flag the video has an error
     _playbackError = true;
@@ -221,10 +264,12 @@ RiseVision.Video = (function (gadgets) {
   }
 
   function stop() {
+    logEvent({ "event": "stop" });
     pause();
   }
 
   return {
+    "logEvent": logEvent,
     "noStorageFile": noStorageFile,
     "onStorageInit": onStorageInit,
     "onStorageRefresh": onStorageRefresh,
