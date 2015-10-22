@@ -40,6 +40,10 @@
   suite("message", function() {
     var storage = document.querySelector("rise-storage");
 
+    sinon.stub(storage.$.ping, "generateRequest", function () {
+      storage._handlePingError();
+    });
+
     suite("waiting", function() {
       test("should show waiting message", function() {
         assert.equal(document.querySelector(".message").innerHTML, "Please wait while your video is downloaded.", "message is correct");
