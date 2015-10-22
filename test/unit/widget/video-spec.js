@@ -30,20 +30,6 @@ describe("logEvent", function() {
     expect(logSpy).to.have.been.calledWith("video_events", params);
   });
 
-  it("should call spy with correct parameters when only the event parameter is set", function() {
-    var params = {
-      "event": "ready",
-      "file_url": "",
-      "file_format": null,
-      "company_id": '"companyId"',
-      "display_id":'"displayId"'
-    };
-
-    RiseVision.Video.logEvent({ "event": "ready" });
-
-    expect(logSpy).to.have.been.calledWith("video_events", params);
-  });
-
   it("should call spy with correct parameters when only the event details parameter is set", function() {
     var params = {
       "event_details": "some error occurred",
