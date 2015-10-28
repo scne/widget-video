@@ -24,12 +24,12 @@ RiseVision.Video.Storage = function (data) {
         if (_initialLoad) {
           _initialLoad = false;
 
-          RiseVision.Video.onStorageInit(e.detail.url);
+          RiseVision.Video.onFileInit(e.detail.url);
         }
         else {
           // check for "changed" property and ensure it is true
           if (e.detail.hasOwnProperty("changed") && e.detail.changed) {
-            RiseVision.Video.onStorageRefresh(e.detail.url);
+            RiseVision.Video.onFileRefresh(e.detail.url);
           }
         }
       }

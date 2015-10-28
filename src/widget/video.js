@@ -10,20 +10,16 @@ RiseVision.Video = (function (gadgets) {
 
   var _prefs = null,
     _storage = null,
+    _nonStorage = null,
     _message = null,
     _frameController = null;
 
   var _playbackError = false,
-    _isStorageFile = false,
     _viewerPaused = true;
 
   var _currentFrame = 0;
 
-  var _separator = "",
-    _currentFile = "";
-
-  var _refreshDuration = 900000,  // 15 minutes
-    _refreshIntervalId = null;
+  var _currentFile = "";
 
   var _error = null,
     _errorTimer = null,
@@ -62,18 +58,6 @@ RiseVision.Video = (function (gadgets) {
       // notify Viewer widget is done
       _done();
     }, 5000);
-  }
-
-  function _refreshInterval(duration) {
-    _refreshIntervalId = setInterval(function videoRefresh() {
-      // set new value of non rise-storage url with a cachebuster
-      _currentFile = _additionalParams.url + _separator + "cb=" + new Date().getTime();
-
-      // in case refreshed file fixes an error with previous file, ensure flag is removed so playback is attempted again
-      _playbackError = false;
-      _error = null;
-
-    }, duration);
   }
 
   // Get the parameters to pass to the event logger.
@@ -134,7 +118,7 @@ RiseVision.Video = (function (gadgets) {
     });
   }
 
-  function onStorageInit(url) {
+  function onFileInit(url) {
     _currentFile = url;
 
     _message.hide();
@@ -144,7 +128,7 @@ RiseVision.Video = (function (gadgets) {
     }
   }
 
-  function onStorageRefresh(url) {
+  function onFileRefresh(url) {
     _currentFile = url;
 
     // in case refreshed file fixes an error with previous file, ensure flag is removed so playback is attempted again
@@ -206,11 +190,6 @@ RiseVision.Video = (function (gadgets) {
     // Ensures messaging is hidden for non-storage video file
     _message.hide();
 
-    // non-storage, check if refresh interval exists yet, start it if not
-    if (!_isStorageFile && _refreshIntervalId === null) {
-      _refreshInterval(_refreshDuration);
-    }
-
     if (!_viewerPaused) {
       frameObj = _frameController.getFrameObject(_currentFrame);
 
@@ -221,7 +200,7 @@ RiseVision.Video = (function (gadgets) {
   }
 
   function setAdditionalParams(names, values) {
-    var str;
+    var isStorageFile;
 
     if (Array.isArray(names) && names.length > 0 && names[0] === "additionalParams") {
       if (Array.isArray(values) && values.length > 0) {
@@ -241,15 +220,11 @@ RiseVision.Video = (function (gadgets) {
 
         _frameController = new RiseVision.Common.Video.FrameController();
 
-        _isStorageFile = (Object.keys(_additionalParams.storage).length !== 0);
+        isStorageFile = (Object.keys(_additionalParams.storage).length !== 0);
 
-        if (!_isStorageFile) {
-          str = _additionalParams.url.split("?");
-
-          // store this for the refresh timer
-          _separator = (str.length === 1) ? "?" : "&";
-
-          _currentFile = _additionalParams.url;
+        if (!isStorageFile) {
+          _nonStorage = new RiseVision.Video.NonStorage(_additionalParams);
+          _nonStorage.init();
         } else {
           // create and initialize the Storage module instance
           _storage = new RiseVision.Video.Storage(_additionalParams);
@@ -293,8 +268,8 @@ RiseVision.Video = (function (gadgets) {
 
   return {
     "logEvent": logEvent,
-    "onStorageInit": onStorageInit,
-    "onStorageRefresh": onStorageRefresh,
+    "onFileInit": onFileInit,
+    "onFileRefresh": onFileRefresh,
     "pause": pause,
     "play": play,
     "setAdditionalParams": setAdditionalParams,

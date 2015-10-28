@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>Video Widget</title>
+
+  <script src="../../src/components/webcomponentsjs/webcomponents-lite.min.js"></script>
+  <script src="../../src/components/web-component-tester/browser.js"></script>
+
+  <link rel="stylesheet" type="text/css" href="../../src/widget/css/video.css">
+  <link rel="stylesheet" type="text/css" href="../../src/components/widget-common/dist/css/video-frame.css">
+  <link rel="stylesheet" href="../../src/components/widget-common/dist/css/message.css">
+</head>
+<body>
+
+<div id="videoContainer">
+  <div id="if_0" class="frameContainer"></div>
+</div>
+
+<div id="messageContainer"></div>
+
+<script src="../data/non-storage.js"></script>
+
+<script src="../../node_modules/widget-tester/mocks/gadget-mocks.js"></script>
+
+<script src="../../src/components/widget-common/dist/config.js"></script>
+<script src="../../src/components/widget-common/dist/logger.js"></script>
+<script src="../../src/components/widget-common/dist/rise-cache.js"></script>
+<script src="../../src/config/test.js"></script>
+<script src="../../src/widget/video.js"></script>
+<script src="../../src/widget/non-storage.js"></script>
+<script src="../../src/components/widget-common/dist/video.js"></script>
+<script src="../../src/components/widget-common/dist/message.js"></script>
+
+<script src="../mocks/FrameController.js"></script>
+
+<script src="../../src/widget/main.js"></script>
+
+<script>
+
+  suite("non-storage", function() {
+    var clock;
+
+    setup(function() {
+      clock = sinon.useFakeTimers();
+    });
+
+    teardown(function() {
+      clock.restore();
+    });
+
+    suite("non-storage initialization - file added", function () {
+      var onInitStub = sinon.stub(RiseVision.Video, "onFileInit", function(){});
+
+      suiteTeardown(function() {
+        RiseVision.Video.onFileInit.restore();
+      });
+
+      test("RiseVision.Video.onFileInit should be called", function() {
+
+        assert(onInitStub.calledOnce, "onFileInit called once");
+        assert.include(onInitStub.args[0][0], "http://s3.amazonaws.com/stu-testing/sample_videos/big-buck-bunny_trailer.webm?cb=",
+          "onFileInit called with correct url");
+      });
+    });
+
+    suite("non-storage refresh - file updated", function() {
+      /*test("RiseVision.Video.onFileRefresh called when file updated", function() {
+        var onRefreshStub = sinon.stub(RiseVision.Video, "onFileRefresh", function(){});
+
+        clock.tick(900000);
+
+        assert(onRefreshStub.calledOnce, "onFileRefresh called once");
+
+        RiseVision.Video.onFileRefresh.restore();
+      });*/
+
+    });
+
+  });
+</script>
+</body>
+</html>
