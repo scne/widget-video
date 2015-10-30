@@ -32,32 +32,11 @@ RiseVision.Video.Storage = function (data) {
             RiseVision.Video.onStorageRefresh(e.detail.url);
           }
         }
-
-        if (e.detail.hasOwnProperty("added") && e.detail.added) {
-          RiseVision.Video.logEvent({ "event": "storage file added", "url": e.detail.url });
-        }
-        else if (e.detail.hasOwnProperty("changed") && e.detail.changed) {
-          RiseVision.Video.logEvent({ "event": "storage file changed", "url": e.detail.url });
-        }
       }
     });
 
     storage.addEventListener("rise-storage-no-file", function() {
-      RiseVision.Video.logEvent({ "event": "storage file not found" });
-      RiseVision.Video.noStorageFile();
-    });
-
-    storage.addEventListener("rise-storage-error", function(e) {
-      var error;
-
-      if (e && e.detail && e.detail.error && e.detail.error.type) {
-        error = e.detail.error.type;
-      }
-
-      RiseVision.Video.logEvent({
-        "event": "storage error",
-        "event_details": error
-      });
+      RiseVision.Video.showError("The selected video does not exist.");
     });
 
     storage.setAttribute("folder", data.storage.folder);

@@ -25,28 +25,33 @@ RiseVision.Video = (function (gadgets) {
   var _refreshDuration = 900000,  // 15 minutes
     _refreshIntervalId = null;
 
-  var _noFileTimer = null,
-    _noFileFlag = false;
-
-  var _logger = RiseVision.Common.Logger;
+  var _errorTimer = null,
+    _errorFlag = false;
 
   /*
    *  Private Methods
    */
-  function _clearNoFileTimer() {
-    clearTimeout(_noFileTimer);
-    _noFileTimer = null;
-  }
-
   function _done() {
-    logEvent({ "event": "done" });
     gadgets.rpc.call("", "rsevent_done", null, _prefs.getString("id"));
   }
 
   function _ready() {
-    logEvent({ "event": "ready" });
     gadgets.rpc.call("", "rsevent_ready", null, _prefs.getString("id"),
       true, true, true, true, true);
+  }
+
+  function _clearErrorTimer() {
+    clearTimeout(_errorTimer);
+    _errorTimer = null;
+  }
+
+  function _startErrorTimer() {
+    _clearErrorTimer();
+
+    _errorTimer = setTimeout(function () {
+      // notify Viewer widget is done
+      _done();
+    }, 5000);
   }
 
   function _refreshInterval(duration) {
@@ -60,65 +65,19 @@ RiseVision.Video = (function (gadgets) {
     }, duration);
   }
 
-  function _startNoFileTimer() {
-    _clearNoFileTimer();
-
-    _noFileTimer = setTimeout(function () {
-      // notify Viewer widget is done
-      _done();
-    }, 5000);
-  }
-
-  function _getLoggerParams(params, cb) {
-    var json = {},
-      utils = RiseVision.Common.LoggerUtils,
-      url = "";
-
-    if (params.event) {
-      json.event = params.event;
-    }
-
-    if (params.eventDetails) {
-      json.event_details = params.eventDetails;
-    }
-
-    if (params.url) {
-      url = params.url;
-    }
-    else {
-      url = _currentFile;
-    }
-
-    json.file_url = url;
-    json.file_format = utils.getFileFormat(url);
-
-    utils.getIds(function(companyId, displayId) {
-      json.company_id = companyId;
-      json.display_id = displayId;
-
-      cb(json);
-    });
-  }
-
   /*
    *  Public Methods
    */
-  function logEvent(params) {
-    _getLoggerParams(params, function(json) {
-      _logger.log("video_events", json);
-    });
-  }
-
-  function noStorageFile() {
-    _noFileFlag = true;
+  function showError(message) {
+    _errorFlag = true;
     _currentFile = "";
 
-    _message.show("The selected video does not exist.");
+    _message.show(message);
 
     _frameController.remove(_currentFrame, function () {
       // if Widget is playing right now, run the timer
       if (!_viewerPaused) {
-        _startNoFileTimer();
+        _startErrorTimer();
       }
     });
   }
@@ -144,10 +103,9 @@ RiseVision.Video = (function (gadgets) {
     var frameObj = _frameController.getFrameObject(_currentFrame);
 
     _viewerPaused = true;
-    logEvent({ "event": "pause" });
 
-    if (_noFileFlag) {
-      _clearNoFileTimer();
+    if (_errorFlag) {
+      _clearErrorTimer();
       return;
     }
 
@@ -160,10 +118,9 @@ RiseVision.Video = (function (gadgets) {
     var frameObj = _frameController.getFrameObject(_currentFrame);
 
     _viewerPaused = false;
-    logEvent({ "event": "play" });
 
-    if (_noFileFlag) {
-      _startNoFileTimer();
+    if (_errorFlag) {
+      _startErrorTimer();
       return;
     }
 
@@ -179,10 +136,6 @@ RiseVision.Video = (function (gadgets) {
         }
 
       }
-    } else {
-      // This flag only got set upon a refresh of hidden frame and there was an error in setup or video
-      // Send Viewer "done"
-      _done();
     }
   }
 
@@ -250,27 +203,19 @@ RiseVision.Video = (function (gadgets) {
     }
   }
 
-  function playerError(error) {
-    logEvent({
-      "event": "player error",
-      "event_details": error.type + " - " + error.message
-    });
-
-    // flag the video has an error
+  // An error occurred with JW Player.
+  function playerError() {
     _playbackError = true;
 
-    // act as though video has ended
-    playerEnded();
+    showError("Sorry, there was a problem playing the video.");
   }
 
   function stop() {
-    logEvent({ "event": "stop" });
     pause();
   }
 
   return {
-    "logEvent": logEvent,
-    "noStorageFile": noStorageFile,
+    "showError": showError,
     "onStorageInit": onStorageInit,
     "onStorageRefresh": onStorageRefresh,
     "pause": pause,
