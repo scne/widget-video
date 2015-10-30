@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>Video Widget</title>
+
+  <script src="../../src/components/webcomponentsjs/webcomponents-lite.min.js"></script>
+  <script src="../../src/components/web-component-tester/browser.js"></script>
+
+  <link rel="import" href="../../src/components/rise-storage/rise-storage.html">
+
+  <link rel="stylesheet" type="text/css" href="../../src/widget/css/video.css">
+  <link rel="stylesheet" type="text/css" href="../../src/components/widget-common/dist/css/video-frame.css">
+  <link rel="stylesheet" href="../../src/components/widget-common/dist/css/message.css">
+</head>
+<body>
+
+<rise-storage id="videoStorage" refresh="5"></rise-storage>
+
+<div id="videoContainer">
+  <div id="if_0" class="frameContainer"></div>
+</div>
+
+<div id="messageContainer"></div>
+
+<script src="../data/storage.js"></script>
+
+<script src="../../node_modules/widget-tester/mocks/gadget-mocks.js"></script>
+<script src="../../node_modules/widget-tester/mocks/logger-mock.js"></script>
+
+<script src="../../src/components/widget-common/dist/config.js"></script>
+<script src="../../src/config/test.js"></script>
+<script src="../../src/widget/video.js"></script>
+<script src="../../src/widget/storage.js"></script>
+<script src="../../src/components/widget-common/dist/video.js"></script>
+<script src="../../src/components/widget-common/dist/message.js"></script>
+<script src="../mocks/FrameController.js"></script>
+<script src="../../src/widget/main.js"></script>
+
+<script>
+  var storage = document.querySelector("rise-storage");
+
+  suite("logging", function() {
+    var playStub, spy, clock,
+      table = "video_events",
+      params = {
+        "event": "storage file not found",
+        "file_url": null,
+        "file_format": null,
+        "company_id": '"companyId"',
+        "display_id": '"displayId"'
+      };
+
+    suiteSetup(function() {
+      playStub = sinon.stub(RiseVision.Video, "play");
+      clock = sinon.useFakeTimers();
+    });
+
+    suiteTeardown(function() {
+      playStub.restore();
+      clock.restore();
+    });
+
+    teardown(function() {
+      RiseVision.Common.Logger.log.restore();
+    });
+
+    suite("storage file not found", function() {
+      test("should log a storage file not found error", function() {
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-no-file", {
+          "detail": null,
+          "bubbles": true
+        }));
+
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
+      });
+
+      test("should log a storage file not found error when done is fired", function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-no-file", {
+          "detail": null,
+          "bubbles": true
+        }));
+
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        clock.tick(5000);
+        assert(spy.calledTwice);  // storage file not found + done
+
+        spyCall = RiseVision.Common.Logger.log.getCall(0);
+
+        assert.equal(spyCall.args[0], table);
+        assert.deepEqual(spyCall.args[1], params);
+      });
+
+      test("should not log a storage file not found error when done is fired if the error has resolved itself on a refresh", function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-no-file", {
+          "detail": null,
+          "bubbles": true
+        }));
+
+        // Resolve the error.
+        RiseVision.Video.onStorageRefresh(window.gadget.settings.additionalParams.url);
+
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        params.event = "done";
+        params.file_url = window.gadget.settings.additionalParams.url;
+        params.file_format = "webm";
+
+        clock.tick(5000);
+
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
+      });
+    });
+
+    suite("storage error", function() {
+      test("should log a storage error", function() {
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-error", {
+          "detail": null,
+          "bubbles": true
+        }));
+
+        params.event = "storage error";
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
+      });
+
+      test("should log a storage error when done is fired", function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-error", {
+          "detail": null,
+          "bubbles": true
+        }));
+
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        clock.tick(5000);
+
+        assert(spy.calledTwice);  // storage error + done
+
+        spyCall = RiseVision.Common.Logger.log.getCall(0);
+
+        assert.equal(spyCall.args[0], table);
+        assert.deepEqual(spyCall.args[1], params);
+      });
+
+      test("should not log a storage error when done is fired if the error has resolved itself on a refresh", function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-error", {
+          "detail": null,
+          "bubbles": true
+        }));
+
+        // Resolve the error.
+        RiseVision.Video.onStorageRefresh(window.gadget.settings.additionalParams.url);
+
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        params.event = "done";
+        params.file_url = window.gadget.settings.additionalParams.url;
+        params.file_format = "webm";
+
+        clock.tick(5000);
+
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
+      });
+    });
+  });
+</script>
+</body>
+</html>

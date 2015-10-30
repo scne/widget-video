@@ -25,14 +25,24 @@ RiseVision.Video = (function (gadgets) {
   var _refreshDuration = 900000,  // 15 minutes
     _refreshIntervalId = null;
 
-  var _errorTimer = null,
+  var _error = null,
+    _errorTimer = null,
     _errorFlag = false;
+
+  var _logger = RiseVision.Common.Logger;
 
   /*
    *  Private Methods
    */
   function _done() {
     gadgets.rpc.call("", "rsevent_done", null, _prefs.getString("id"));
+
+    // Any errors need to be logged before the done event.
+    if (_error !== null) {
+      logEvent(_error, true);
+    }
+
+    logEvent({ "event": "done" }, false);
   }
 
   function _ready() {
@@ -61,8 +71,41 @@ RiseVision.Video = (function (gadgets) {
 
       // in case refreshed file fixes an error with previous file, ensure flag is removed so playback is attempted again
       _playbackError = false;
+      _error = null;
 
     }, duration);
+  }
+
+  // Get the parameters to pass to the event logger.
+  function _getLoggerParams(params, cb) {
+    var json = {},
+      utils = RiseVision.Common.LoggerUtils,
+      url = null;
+
+    if (params.event) {
+      json.event = params.event;
+    }
+
+    if (params.event_details) {
+      json.event_details = params.event_details;
+    }
+
+    if (params.url) {
+      url = params.url;
+    }
+    else if (_currentFile) {
+      url = _currentFile;
+    }
+
+    json.file_url = url;
+    json.file_format = utils.getFileFormat(url);
+
+    utils.getIds(function(companyId, displayId) {
+      json.company_id = companyId;
+      json.display_id = displayId;
+
+      cb(json);
+    });
   }
 
   /*
@@ -70,7 +113,6 @@ RiseVision.Video = (function (gadgets) {
    */
   function showError(message) {
     _errorFlag = true;
-    _currentFile = "";
 
     _message.show(message);
 
@@ -79,6 +121,16 @@ RiseVision.Video = (function (gadgets) {
       if (!_viewerPaused) {
         _startErrorTimer();
       }
+    });
+  }
+
+  function logEvent(params, isError) {
+    if (isError) {
+      _error = params;
+    }
+
+    _getLoggerParams(params, function(json) {
+      _logger.log("video_events", json);
     });
   }
 
@@ -97,6 +149,7 @@ RiseVision.Video = (function (gadgets) {
 
     // in case refreshed file fixes an error with previous file, ensure flag is removed so playback is attempted again
     _playbackError = false;
+    _error = null;
   }
 
   function pause() {
@@ -118,6 +171,8 @@ RiseVision.Video = (function (gadgets) {
     var frameObj = _frameController.getFrameObject(_currentFrame);
 
     _viewerPaused = false;
+
+    logEvent({ "event": "play" }, false);
 
     if (_errorFlag) {
       _startErrorTimer();
@@ -158,7 +213,10 @@ RiseVision.Video = (function (gadgets) {
 
     if (!_viewerPaused) {
       frameObj = _frameController.getFrameObject(_currentFrame);
-      frameObj.play();
+
+      if (frameObj) {
+        frameObj.play();
+      }
     }
   }
 
@@ -204,9 +262,28 @@ RiseVision.Video = (function (gadgets) {
   }
 
   // An error occurred with JW Player.
-  function playerError() {
+  function playerError(error) {
+    var details = null,
+      params = {};
+
     _playbackError = true;
 
+    if (error) {
+      if (error.type && error.message) {
+        details = error.type + " - " + error.message;
+      }
+      else if (error.type) {
+        details = error.type;
+      }
+      else if (error.message) {
+        details = error.message;
+      }
+    }
+
+    params.event = "player error";
+    params.event_details = details;
+
+    logEvent(params, true);
     showError("Sorry, there was a problem playing the video.");
   }
 
@@ -215,12 +292,13 @@ RiseVision.Video = (function (gadgets) {
   }
 
   return {
-    "showError": showError,
+    "logEvent": logEvent,
     "onStorageInit": onStorageInit,
     "onStorageRefresh": onStorageRefresh,
     "pause": pause,
     "play": play,
     "setAdditionalParams": setAdditionalParams,
+    "showError": showError,
     "playerEnded": playerEnded,
     "playerReady": playerReady,
     "playerError": playerError,
