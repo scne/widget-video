@@ -25,7 +25,6 @@
 <script src="../../node_modules/widget-tester/mocks/gadget-mocks.js"></script>
 
 <script src="../../src/components/widget-common/dist/config.js"></script>
-<script src="../../src/components/widget-common/dist/logger.js"></script>
 <script src="../../src/config/test.js"></script>
 <script src="../../src/widget/video.js"></script>
 <script src="../../src/components/widget-common/dist/video.js"></script>
@@ -36,7 +35,7 @@
 
 <script>
 
-  suite("message", function() {
+  suite("downloading message", function() {
     var storage = document.querySelector("rise-storage");
 
     test("should show waiting message", function() {
@@ -49,7 +48,30 @@
       assert.isTrue((document.getElementById("videoContainer").style.visibility === "visible"), "video container is showing");
       assert.isTrue((document.getElementById("messageContainer").style.display === "none"), "message container is hidden");
     });
+  });
 
+  suite("player error message", function() {
+    test("should show player error message", function() {
+      RiseVision.Video.playerError();
+
+      assert.equal(document.querySelector(".message").innerHTML, "Sorry, there was a problem playing the video.", "message text");
+      assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
+    });
+
+    test("should call play function 5 seconds after a player error", function() {
+      var clock = sinon.useFakeTimers(),
+        spy = sinon.spy(RiseVision.Video, "play");
+
+      RiseVision.Video.playerError();
+
+      clock.tick(4500);
+      assert(spy.notCalled);
+      clock.tick(500);
+      assert(spy.calledOnce);
+
+      clock.restore();
+      RiseVision.Video.play.restore();
+    });
   });
 </script>
 </body>
