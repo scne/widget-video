@@ -23,7 +23,7 @@ describe("logEvent", function() {
 
     RiseVision.Video.logEvent({
       "event": "ready",
-      "eventDetails": "some error occurred",
+      "event_details": "some error occurred",
       "url": "http://www.test.com/file.webm"
     });
 
@@ -33,13 +33,13 @@ describe("logEvent", function() {
   it("should call spy with correct parameters when only the event details parameter is set", function() {
     var params = {
       "event_details": "some error occurred",
-      "file_url": "",
+      "file_url": null,
       "file_format": null,
       "company_id": '"companyId"',
       "display_id":'"displayId"'
     };
 
-    RiseVision.Video.logEvent({ "eventDetails": "some error occurred" });
+    RiseVision.Video.logEvent({ "event_details": "some error occurred" });
 
     expect(logSpy).to.have.been.calledWith("video_events", params);
   });

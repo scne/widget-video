@@ -6,6 +6,218 @@ var WIDGET_COMMON_CONFIG = {
   STORAGE_ENV: "prod",
   STORE_URL: "https://store-dot-rvaserver2.appspot.com/"
 };
+/* global gadgets */
+
+var RiseVision = RiseVision || {};
+RiseVision.Common = RiseVision.Common || {};
+
+RiseVision.Common.LoggerUtils = (function(gadgets) {
+  "use strict";
+
+   var id = new gadgets.Prefs().getString("id"),
+    displayId = "",
+    companyId = "",
+    callback = null;
+
+  var BASE_INSERT_SCHEMA =
+  {
+    "kind": "bigquery#tableDataInsertAllRequest",
+    "skipInvalidRows": false,
+    "ignoreUnknownValues": false,
+    "rows": [{
+      "insertId": ""
+    }]
+  };
+
+  /*
+   *  Private Methods
+   */
+
+  /* Set the Company and Display IDs. */
+  function setIds(names, values) {
+    if (Array.isArray(names) && names.length > 0) {
+      if (Array.isArray(values) && values.length > 0) {
+        if (names[0] === "companyId") {
+          companyId = values[0];
+        }
+
+        if (names[1] === "displayId") {
+          if (values[1]) {
+            displayId = values[1];
+          }
+          else {
+            displayId = "preview";
+          }
+        }
+
+        callback(companyId, displayId);
+      }
+    }
+  }
+
+  /*
+   *  Public Methods
+   */
+  function getIds(cb) {
+    if (!cb || typeof cb !== "function") {
+      return;
+    }
+    else {
+      callback = cb;
+    }
+
+    if (companyId && displayId) {
+      callback(companyId, displayId);
+    }
+    else {
+      if (id && id !== "") {
+        gadgets.rpc.register("rsparam_set_" + id, setIds);
+        gadgets.rpc.call("", "rsparam_get", null, id, ["companyId", "displayId"]);
+      }
+    }
+  }
+
+  function getFileFormat(url) {
+    var hasParams = /[?#&]/,
+      str;
+
+    if (!url || typeof url !== "string") {
+      return null;
+    }
+
+    str = url.substr(url.lastIndexOf(".") + 1);
+
+    // don't include any params after the filename
+    if (hasParams.test(str)) {
+      str = str.substr(0 ,(str.indexOf("?") !== -1) ? str.indexOf("?") : str.length);
+
+      str = str.substr(0, (str.indexOf("#") !== -1) ? str.indexOf("#") : str.length);
+
+      str = str.substr(0, (str.indexOf("&") !== -1) ? str.indexOf("&") : str.length);
+    }
+
+    return str.toLowerCase();
+  }
+
+  function getInsertData(params) {
+    var data = JSON.parse(JSON.stringify(BASE_INSERT_SCHEMA));
+
+    data.rows[0].insertId = Math.random().toString(36).substr(2).toUpperCase();
+    data.rows[0].json = JSON.parse(JSON.stringify(params));
+    data.rows[0].json.ts = new Date().toISOString();
+
+    return data;
+  }
+
+  function getTable(name) {
+    var date = new Date(),
+      year = date.getUTCFullYear(),
+      month = date.getUTCMonth() + 1,
+      day = date.getUTCDate();
+
+    if (month < 10) {
+      month = "0" + month;
+    }
+
+    if (day < 10) {
+      day = "0" + day;
+    }
+
+    return name + year + month + day;
+  }
+
+  return {
+    "getIds": getIds,
+    "getInsertData": getInsertData,
+    "getFileFormat": getFileFormat,
+    "getTable": getTable
+  };
+})(gadgets);
+
+RiseVision.Common.Logger = (function(utils) {
+  "use strict";
+
+  var REFRESH_URL = "https://www.googleapis.com/oauth2/v3/token?client_id=" + WIDGET_COMMON_CONFIG.LOGGER_CLIENT_ID +
+      "&client_secret=" + WIDGET_COMMON_CONFIG.LOGGER_CLIENT_SECRET +
+      "&refresh_token=" + WIDGET_COMMON_CONFIG.LOGGER_REFRESH_TOKEN +
+      "&grant_type=refresh_token";
+
+  var serviceUrl = "https://www.googleapis.com/bigquery/v2/projects/client-side-events/datasets/Widget_Events/tables/TABLE_ID/insertAll",
+    throttle = false,
+    throttleDelay = 1000,
+    lastEvent = "",
+    refreshDate = 0,
+    token = "";
+
+  /*
+   *  Private Methods
+   */
+  function refreshToken(cb) {
+    var xhr = new XMLHttpRequest();
+
+    if (new Date() - refreshDate < 3580000) {
+      return cb({});
+    }
+
+    xhr.open("POST", REFRESH_URL, true);
+    xhr.onloadend = function() {
+      var resp = JSON.parse(xhr.response);
+
+      cb({ token: resp.access_token, refreshedAt: new Date() });
+    };
+
+    xhr.send();
+  }
+
+  function isThrottled(event) {
+    return throttle && (lastEvent === event);
+  }
+
+  /*
+   *  Public Methods
+   */
+  function log(tableName, params) {
+    if (!tableName || !params || !params.event || isThrottled(params.event)) {
+      return;
+    }
+
+    throttle = true;
+    lastEvent = params.event;
+
+    setTimeout(function () {
+      throttle = false;
+    }, throttleDelay);
+
+    function insertWithToken(refreshData) {
+      var xhr = new XMLHttpRequest(),
+        insertData, url;
+
+      url = serviceUrl.replace("TABLE_ID", utils.getTable(tableName));
+      refreshDate = refreshData.refreshedAt || refreshDate;
+      token = refreshData.token || token;
+      insertData = utils.getInsertData(params);
+
+      // Insert the data.
+      xhr.open("POST", url, true);
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.setRequestHeader("Authorization", "Bearer " + token);
+
+      if (params.cb && typeof params.cb === "function") {
+        xhr.onloadend = function() {
+          params.cb(xhr.response);
+        };
+      }
+
+      xhr.send(JSON.stringify(insertData));
+    }
+
+    return refreshToken(insertWithToken);
+  }
+
+  return {
+    "log": log
+  };
+})(RiseVision.Common.LoggerUtils);
 /* global config: true */
 /* exported config */
 if (typeof config === "undefined") {
@@ -48,14 +260,24 @@ RiseVision.Video = (function (gadgets) {
   var _refreshDuration = 900000,  // 15 minutes
     _refreshIntervalId = null;
 
-  var _errorTimer = null,
+  var _error = null,
+    _errorTimer = null,
     _errorFlag = false;
+
+  var _logger = RiseVision.Common.Logger;
 
   /*
    *  Private Methods
    */
   function _done() {
     gadgets.rpc.call("", "rsevent_done", null, _prefs.getString("id"));
+
+    // Any errors need to be logged before the done event.
+    if (_error !== null) {
+      logEvent(_error, true);
+    }
+
+    logEvent({ "event": "done" }, false);
   }
 
   function _ready() {
@@ -84,8 +306,41 @@ RiseVision.Video = (function (gadgets) {
 
       // in case refreshed file fixes an error with previous file, ensure flag is removed so playback is attempted again
       _playbackError = false;
+      _error = null;
 
     }, duration);
+  }
+
+  // Get the parameters to pass to the event logger.
+  function _getLoggerParams(params, cb) {
+    var json = {},
+      utils = RiseVision.Common.LoggerUtils,
+      url = null;
+
+    if (params.event) {
+      json.event = params.event;
+    }
+
+    if (params.event_details) {
+      json.event_details = params.event_details;
+    }
+
+    if (params.url) {
+      url = params.url;
+    }
+    else if (_currentFile) {
+      url = _currentFile;
+    }
+
+    json.file_url = url;
+    json.file_format = utils.getFileFormat(url);
+
+    utils.getIds(function(companyId, displayId) {
+      json.company_id = companyId;
+      json.display_id = displayId;
+
+      cb(json);
+    });
   }
 
   /*
@@ -93,7 +348,6 @@ RiseVision.Video = (function (gadgets) {
    */
   function showError(message) {
     _errorFlag = true;
-    _currentFile = "";
 
     _message.show(message);
 
@@ -102,6 +356,16 @@ RiseVision.Video = (function (gadgets) {
       if (!_viewerPaused) {
         _startErrorTimer();
       }
+    });
+  }
+
+  function logEvent(params, isError) {
+    if (isError) {
+      _error = params;
+    }
+
+    _getLoggerParams(params, function(json) {
+      _logger.log("video_events", json);
     });
   }
 
@@ -120,6 +384,7 @@ RiseVision.Video = (function (gadgets) {
 
     // in case refreshed file fixes an error with previous file, ensure flag is removed so playback is attempted again
     _playbackError = false;
+    _error = null;
   }
 
   function pause() {
@@ -141,6 +406,8 @@ RiseVision.Video = (function (gadgets) {
     var frameObj = _frameController.getFrameObject(_currentFrame);
 
     _viewerPaused = false;
+
+    logEvent({ "event": "play" }, false);
 
     if (_errorFlag) {
       _startErrorTimer();
@@ -181,7 +448,10 @@ RiseVision.Video = (function (gadgets) {
 
     if (!_viewerPaused) {
       frameObj = _frameController.getFrameObject(_currentFrame);
-      frameObj.play();
+
+      if (frameObj) {
+        frameObj.play();
+      }
     }
   }
 
@@ -227,9 +497,28 @@ RiseVision.Video = (function (gadgets) {
   }
 
   // An error occurred with JW Player.
-  function playerError() {
+  function playerError(error) {
+    var details = null,
+      params = {};
+
     _playbackError = true;
 
+    if (error) {
+      if (error.type && error.message) {
+        details = error.type + " - " + error.message;
+      }
+      else if (error.type) {
+        details = error.type;
+      }
+      else if (error.message) {
+        details = error.message;
+      }
+    }
+
+    params.event = "player error";
+    params.event_details = details;
+
+    logEvent(params, true);
     showError("Sorry, there was a problem playing the video.");
   }
 
@@ -238,12 +527,13 @@ RiseVision.Video = (function (gadgets) {
   }
 
   return {
-    "showError": showError,
+    "logEvent": logEvent,
     "onStorageInit": onStorageInit,
     "onStorageRefresh": onStorageRefresh,
     "pause": pause,
     "play": play,
     "setAdditionalParams": setAdditionalParams,
+    "showError": showError,
     "playerEnded": playerEnded,
     "playerReady": playerReady,
     "playerError": playerError,
@@ -290,7 +580,17 @@ RiseVision.Video.Storage = function (data) {
     });
 
     storage.addEventListener("rise-storage-no-file", function() {
+      var params = { "event": "storage file not found" };
+
+      RiseVision.Video.logEvent(params, true);
       RiseVision.Video.showError("The selected video does not exist.");
+    });
+
+    storage.addEventListener("rise-storage-error", function() {
+      var params = { "event": "storage error" };
+
+      RiseVision.Video.logEvent(params, true);
+      RiseVision.Video.showError("Sorry, there was a problem playing the video from Storage.");
     });
 
     storage.setAttribute("folder", data.storage.folder);

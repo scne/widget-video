@@ -159,13 +159,13 @@
   gulp.task("test:unit:widget", factory.testUnitAngular(
     {testFiles: [
       "node_modules/widget-tester/mocks/gadget-mocks.js",
+      "node_modules/widget-tester/mocks/logger-mock.js",
       "src/components/widget-common/dist/config.js",
-      "src/components/widget-common/dist/logger.js",
       "src/config/test.js",
       "src/widget/video.js",
       "src/widget/player.js",
-      "test/unit/widget/player-spec.js"
-      //,"test/unit/widget/video-spec.js"
+      "test/unit/widget/player-spec.js",
+      "test/unit/widget/video-spec.js"
     ]}
   ));
 
