@@ -30,6 +30,7 @@
 <script src="../../node_modules/widget-tester/mocks/logger-mock.js"></script>
 
 <script src="../../src/components/widget-common/dist/config.js"></script>
+<script src="../../src/components/widget-common/dist/rise-cache.js"></script>
 <script src="../../src/config/test.js"></script>
 <script src="../../src/widget/video.js"></script>
 <script src="../../src/widget/storage.js"></script>
@@ -67,6 +68,8 @@
     });
 
     suite("storage file not found", function() {
+      var spyCall;
+
       test("should log a storage file not found error", function() {
         spy = sinon.spy(RiseVision.Common.Logger, "log");
 
@@ -102,7 +105,7 @@
         }));
 
         // Resolve the error.
-        RiseVision.Video.onStorageRefresh(window.gadget.settings.additionalParams.url);
+        RiseVision.Video.onFileRefresh(window.gadget.settings.additionalParams.url);
 
         spy = sinon.spy(RiseVision.Common.Logger, "log");
         params.event = "done";
@@ -117,6 +120,8 @@
     });
 
     suite("storage error", function() {
+      var spyCall;
+
       test("should log a storage error", function() {
         spy = sinon.spy(RiseVision.Common.Logger, "log");
 
@@ -154,7 +159,7 @@
         }));
 
         // Resolve the error.
-        RiseVision.Video.onStorageRefresh(window.gadget.settings.additionalParams.url);
+        RiseVision.Video.onFileRefresh(window.gadget.settings.additionalParams.url);
 
         spy = sinon.spy(RiseVision.Common.Logger, "log");
         params.event = "done";

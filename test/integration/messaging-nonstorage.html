@@ -29,17 +29,31 @@
 <script src="../../src/components/widget-common/dist/rise-cache.js"></script>
 <script src="../../src/config/test.js"></script>
 <script src="../../src/widget/video.js"></script>
+<script src="../../src/widget/non-storage.js"></script>
 <script src="../../src/components/widget-common/dist/video.js"></script>
 <script src="../../src/components/widget-common/dist/message.js"></script>
 
 <script src="../mocks/FrameController.js"></script>
+
 <script src="../../src/widget/main.js"></script>
 
 <script>
 
+  var onFileInitStub;
+
+  window.waitFor(function () {
+    return document.querySelector(".message") !== null;
+  }, function(){
+    onFileInitStub = sinon.stub(RiseVision.Video, "onFileInit");
+  });
+
   suite("messaging", function() {
+
+    teardown(function () {
+      onFileInitStub.restore();
+    });
+
     suite("downloading message", function() {
-      var storage = document.querySelector("rise-storage");
 
       test("should show waiting message", function() {
         assert.equal(document.querySelector(".message").innerHTML, "Please wait while your video is downloaded.", "message is correct");

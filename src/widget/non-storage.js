@@ -20,15 +20,11 @@ RiseVision.Video.NonStorage = function (data) {
 
           RiseVision.Video.onFileInit(response.url);
 
-          RiseVision.Video.logEvent({ "event": "non-storage file added", "url": response.url });
-
           // start the refresh interval
           _startRefreshInterval();
 
         } else {
           RiseVision.Video.onFileRefresh(response.url);
-
-          RiseVision.Video.logEvent({ "event": "non-storage file updated", "url": response.url });
         }
 
       } else {
