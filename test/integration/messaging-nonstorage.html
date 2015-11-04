@@ -39,21 +39,15 @@
 
 <script>
 
-  var onFileInitStub;
-
-  window.waitFor(function () {
-    return document.querySelector(".message") !== null;
-  }, function(){
-    onFileInitStub = sinon.stub(RiseVision.Video, "onFileInit");
-  });
-
   suite("messaging", function() {
 
-    teardown(function () {
-      onFileInitStub.restore();
-    });
-
     suite("downloading message", function() {
+
+      sinon.stub(RiseVision.Video, "onFileInit", function(){});
+
+      suiteTeardown(function() {
+        RiseVision.Video.onFileInit.restore();
+      });
 
       test("should show waiting message", function() {
         assert.equal(document.querySelector(".message").innerHTML, "Please wait while your video is downloaded.", "message is correct");

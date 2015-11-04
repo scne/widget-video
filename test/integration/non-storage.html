@@ -23,9 +23,9 @@
 <script src="../data/non-storage.js"></script>
 
 <script src="../../node_modules/widget-tester/mocks/gadget-mocks.js"></script>
+<script src="../../node_modules/widget-tester/mocks/logger-mock.js"></script>
 
 <script src="../../src/components/widget-common/dist/config.js"></script>
-<script src="../../src/components/widget-common/dist/logger.js"></script>
 <script src="../../src/components/widget-common/dist/rise-cache.js"></script>
 <script src="../../src/config/test.js"></script>
 <script src="../../src/widget/video.js"></script>
@@ -40,18 +40,24 @@
 <script>
 
   suite("non-storage", function() {
-    var clock;
 
-    setup(function() {
+    var clock, paramsStub;
+
+    paramsStub = sinon.stub(RiseVision.Video, "setAdditionalParams", function (names, values) {
+      // need to set the fake timer clock before any of the code within setAdditionalParams is executed
       clock = sinon.useFakeTimers();
+      // restore the function
+      paramsStub.restore();
+      // call it again with the params
+      RiseVision.Video.setAdditionalParams(names, values);
     });
 
-    teardown(function() {
+    teardown(function () {
       clock.restore();
     });
 
     suite("non-storage initialization - file added", function () {
-      var onInitStub = sinon.stub(RiseVision.Video, "onFileInit", function(){});
+      var onInitSpy = sinon.spy(RiseVision.Video, "onFileInit");
 
       suiteTeardown(function() {
         RiseVision.Video.onFileInit.restore();
@@ -59,22 +65,27 @@
 
       test("RiseVision.Video.onFileInit should be called", function() {
 
-        assert(onInitStub.calledOnce, "onFileInit called once");
-        assert.include(onInitStub.args[0][0], "http://s3.amazonaws.com/stu-testing/sample_videos/big-buck-bunny_trailer.webm?cb=",
+        assert(onInitSpy.calledOnce, "onFileInit called once");
+        assert.include(onInitSpy.args[0][0], "http://s3.amazonaws.com/stu-testing/sample_videos/big-buck-bunny_trailer.webm?cb=",
           "onFileInit called with correct url");
       });
     });
 
     suite("non-storage refresh - file updated", function() {
-      /*test("RiseVision.Video.onFileRefresh called when file updated", function() {
-        var onRefreshStub = sinon.stub(RiseVision.Video, "onFileRefresh", function(){});
+      var onRefreshSpy = sinon.spy(RiseVision.Video, "onFileRefresh");
 
+      suiteTeardown(function() {
+        RiseVision.Video.onFileRefresh.restore();
+      });
+
+      test("RiseVision.Video.onFileRefresh called when file updated", function() {
+        // advance clock the refresh interval duration amount
         clock.tick(900000);
 
-        assert(onRefreshStub.calledOnce, "onFileRefresh called once");
-
-        RiseVision.Video.onFileRefresh.restore();
-      });*/
+        assert(onRefreshSpy.calledOnce, "onFileRefresh called once");
+        assert.include(onRefreshSpy.args[0][0], "http://s3.amazonaws.com/stu-testing/sample_videos/big-buck-bunny_trailer.webm?cb=",
+          "onFileRefresh called with correct url");
+      });
 
     });
 

@@ -46,13 +46,19 @@
         "file_format": "webm",
         "company_id": '"companyId"',
         "display_id": '"displayId"'
-      };
+      },
+      paramsStub;
 
-    suiteSetup(function() {
+    paramsStub = sinon.stub(RiseVision.Video, "setAdditionalParams", function (names, values) {
+      // need to enforce the fake timer clock before any of the code within setAdditionalParams is executed
       clock = sinon.useFakeTimers();
+      // restore the function
+      paramsStub.restore();
+      // call it again with the params
+      RiseVision.Video.setAdditionalParams(names, values);
     });
 
-    suiteTeardown(function() {
+    teardown(function() {
       clock.restore();
     });
 
@@ -87,46 +93,6 @@
       });
     });
 
-    suite("done", function() {
-      var playStub, spyCall, spyObj, paramsObj;
-
-      suiteSetup(function() {
-        // Stub the play function to prevent it from logging events.
-        playStub = sinon.stub(RiseVision.Video, "play");
-      });
-
-      suiteTeardown(function() {
-        playStub.restore();
-      });
-
-      teardown(function() {
-        RiseVision.Common.Logger.log.restore();
-      });
-
-      test("should log the done event", function() {
-        // Force "done" to fire by simulating a player error.
-        RiseVision.Video.playerError();
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
-        clock.tick(5000);
-
-        assert(spy.calledTwice);  // player error + done
-
-        params.event = "done";
-        spyCall = RiseVision.Common.Logger.log.getCall(1);  // done
-        spyObj = spyCall.args[1];
-        paramsObj = JSON.parse(JSON.stringify(params));
-
-        assert.equal(spyCall.args[0], table, "called with correct table name");
-        assert.include(spyObj.file_url, params.file_url + "?cb=", "called with correct file url param");
-
-        // remove the file_url property so a deep comparison of the rest of the object can be done next
-        delete spyObj.file_url;
-        delete paramsObj.file_url;
-
-        assert.deepEqual(spyObj, paramsObj, "called with correct additional params");
-      });
-    });
-
     suite("player error", function() {
       var playStub, spyCall, spyObj, paramsObj;
 
@@ -137,6 +103,7 @@
 
       suiteTeardown(function() {
         playStub.restore();
+        clock.restore();
       });
 
       teardown(function() {
@@ -231,7 +198,45 @@
         assert.deepEqual(spyObj, paramsObj, "called with correct additional params");
       });
 
+      test("should not log a player error when done is fired if the error has resolved itself on a refresh", function() {
+        // Force player error.
+        RiseVision.Video.playerError({ "type": "setup", "message": "Error loading player: No media sources found" });
+
+        // Resolve player error.
+        RiseVision.Video.playerReady();
+        // done will fire first, then the refresh that clears the error.
+        clock.tick(900000);
+
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        // Force done to fire again.
+        RiseVision.Video.playerEnded();
+
+        assert(spy.calledOnce);
+
+        params.event = "done";
+        delete params.event_details;  // No event_details for a done event.
+
+        spyCall = RiseVision.Common.Logger.log.getCall(0);
+        spyObj = spyCall.args[1];
+        paramsObj = JSON.parse(JSON.stringify(params));
+
+        assert.equal(spyCall.args[0], table, "called with correct table name");
+        assert.include(spyObj.file_url, params.file_url + "?cb=", "called with correct file url param");
+
+        // remove the file_url property so a deep comparison of the rest of the object can be done next
+        delete spyObj.file_url;
+        delete paramsObj.file_url;
+
+        assert.deepEqual(spyObj, paramsObj, "called with correct additional params");
+      });
+
       test("should log a player error when done is fired", function() {
+        // enforce a new scope for fake timer
+        clock = sinon.useFakeTimers();
+
+        params.event = "player error";
+        params.event_details = "setup - Error loading player: No media sources found";
+
         // Force "done" to fire by simulating a player error.
         RiseVision.Video.playerError({ "type": "setup", "message": "Error loading player: No media sources found" });
         spy = sinon.spy(RiseVision.Common.Logger, "log");
@@ -253,32 +258,51 @@
 
         assert.deepEqual(spyObj, paramsObj, "called with correct additional params");
       });
+    });
 
-      test("should not log a player error when done is fired if the error has resolved itself on a refresh", function() {
-        // Force player error.
-        RiseVision.Video.playerError({ "type": "setup", "message": "Error loading player: No media sources found" });
+    suite("done", function() {
+      var playStub, spyCall, spyObj, paramsObj;
 
-        // Resolve player error.
-        RiseVision.Video.playerReady();
-        // done will fire first, then the refresh that clears the error.
-        clock.tick(900000);
+      suiteSetup(function() {
+        // Stub the play function to prevent it from logging events.
+        playStub = sinon.stub(RiseVision.Video, "play");
+        clock = sinon.useFakeTimers();
+      });
 
+      suiteTeardown(function() {
+        playStub.restore();
+      });
+
+      teardown(function() {
+        RiseVision.Common.Logger.log.restore();
+      });
+
+      test("should log the done event", function() {
+        // Force "done" to fire by simulating a player error.
+        RiseVision.Video.playerError();
         spy = sinon.spy(RiseVision.Common.Logger, "log");
-        // Force done to fire again.
-        RiseVision.Video.playerEnded();
+        clock.tick(5000);
 
-        //assert(spy.calledOnce);
+        assert.equal(spy.callCount, 2, "called twice");  // player error + done
 
         params.event = "done";
-        params.file_url += "?cb=910000";  // Refreshing adds a cache buster.
         delete params.event_details;  // No event_details for a done event.
 
-        spyCall = RiseVision.Common.Logger.log.getCall(0);
+        spyCall = RiseVision.Common.Logger.log.getCall(1);  // done
+        spyObj = spyCall.args[1];
+        paramsObj = JSON.parse(JSON.stringify(params));
 
-        //assert.equal(spyCall.args[0], table);
-        //assert.deepEqual(spyCall.args[1], params);
+        assert.equal(spyCall.args[0], table, "called with correct table name");
+        assert.include(spyObj.file_url, params.file_url + "?cb=", "called with correct file url param");
+
+        // remove the file_url property so a deep comparison of the rest of the object can be done next
+        delete spyObj.file_url;
+        delete paramsObj.file_url;
+
+        assert.deepEqual(spyObj, paramsObj, "called with correct additional params");
       });
     });
+
   });
 </script>
 </body>
