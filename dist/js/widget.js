@@ -218,7 +218,6 @@ RiseVision.Common.Logger = (function(utils) {
     "log": log
   };
 })(RiseVision.Common.LoggerUtils);
-
 var RiseVision = RiseVision || {};
 RiseVision.Common = RiseVision.Common || {};
 
