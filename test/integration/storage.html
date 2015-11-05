@@ -30,6 +30,7 @@
 <script src="../../node_modules/widget-tester/mocks/logger-mock.js"></script>
 
 <script src="../../src/components/widget-common/dist/config.js"></script>
+<script src="../../src/components/widget-common/dist/rise-cache.js"></script>
 <script src="../../src/config/test.js"></script>
 <script src="../../src/widget/video.js"></script>
 <script src="../../src/widget/storage.js"></script>
@@ -38,7 +39,7 @@
 <script src="../../src/widget/main.js"></script>
 
 <script>
-  suite("Video Widget", function() {
+  suite("storage", function() {
 
     var storage = document.querySelector("rise-storage"),
       responded = false,
@@ -55,7 +56,7 @@
           }, 1000);
         }
       },
-        onInitStub = sinon.stub(RiseVision.Video, "onStorageInit", function(){});
+        onInitStub = sinon.stub(RiseVision.Video, "onFileInit", function(){});
 
       suiteSetup(function() {
         listener = function(response) {
@@ -73,7 +74,7 @@
 
       suiteTeardown(function() {
         storage.$.ping.generateRequest.restore();
-        RiseVision.Video.onStorageInit.restore();
+        RiseVision.Video.onFileInit.restore();
       });
 
       // Don't run the tests until rise-storage-response has fired.
@@ -99,7 +100,7 @@
     });
 
     suite("Storage Refresh - file changed", function() {
-      var onRefreshStub = sinon.stub(RiseVision.Video, "onStorageRefresh", function(){});
+      var onRefreshStub = sinon.stub(RiseVision.Video, "onFileRefresh", function(){});
 
       suiteSetup(function() {
         storage.dispatchEvent(new CustomEvent("rise-storage-response", {
@@ -112,7 +113,7 @@
       });
 
       suiteTeardown(function() {
-        RiseVision.Video.onStorageRefresh.restore();
+        RiseVision.Video.onFileRefresh.restore();
       });
 
       test("RiseVision.Video.onStorageRefresh called when file changed", function() {

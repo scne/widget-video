@@ -39,51 +39,56 @@
 
 <script>
 
-  suite("messaging", function() {
+  suite("non-storage", function() {
 
-    suite("downloading message", function() {
+    var clock, paramsStub;
 
-      sinon.stub(RiseVision.Video, "onFileInit", function(){});
+    paramsStub = sinon.stub(RiseVision.Video, "setAdditionalParams", function (names, values) {
+      // need to set the fake timer clock before any of the code within setAdditionalParams is executed
+      clock = sinon.useFakeTimers();
+      // restore the function
+      paramsStub.restore();
+      // call it again with the params
+      RiseVision.Video.setAdditionalParams(names, values);
+    });
+
+    teardown(function () {
+      clock.restore();
+    });
+
+    suite("non-storage initialization - file added", function () {
+      var onInitSpy = sinon.spy(RiseVision.Video, "onFileInit");
 
       suiteTeardown(function() {
         RiseVision.Video.onFileInit.restore();
       });
 
-      test("should show waiting message", function() {
-        assert.equal(document.querySelector(".message").innerHTML, "Please wait while your video is downloaded.", "message is correct");
-      });
+      test("RiseVision.Video.onFileInit should be called", function() {
 
-      test("should not show message", function() {
-        RiseVision.Video.playerReady();
-
-        assert.isTrue((document.getElementById("videoContainer").style.visibility === "visible"), "video container is showing");
-        assert.isTrue((document.getElementById("messageContainer").style.display === "none"), "message container is hidden");
+        assert(onInitSpy.calledOnce, "onFileInit called once");
+        assert.include(onInitSpy.args[0][0], "http://s3.amazonaws.com/stu-testing/sample_videos/big-buck-bunny_trailer.webm?cb=",
+          "onFileInit called with correct url");
       });
     });
 
-    suite("player error message", function() {
-      test("should show player error message", function() {
-        RiseVision.Video.playerError();
+    suite("non-storage refresh - file updated", function() {
+      var onRefreshSpy = sinon.spy(RiseVision.Video, "onFileRefresh");
 
-        assert.equal(document.querySelector(".message").innerHTML, "Sorry, there was a problem playing the video.", "message text");
-        assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
+      suiteTeardown(function() {
+        RiseVision.Video.onFileRefresh.restore();
       });
 
-      test("should call play function 5 seconds after a player error", function() {
-        var clock = sinon.useFakeTimers(),
-          spy = sinon.spy(RiseVision.Video, "play");
+      test("RiseVision.Video.onFileRefresh called when file updated", function() {
+        // advance clock the refresh interval duration amount
+        clock.tick(900000);
 
-        RiseVision.Video.playerError();
-
-        clock.tick(4500);
-        assert(spy.notCalled);
-        clock.tick(500);
-        assert(spy.calledOnce);
-
-        clock.restore();
-        RiseVision.Video.play.restore();
+        assert(onRefreshSpy.calledOnce, "onFileRefresh called once");
+        assert.include(onRefreshSpy.args[0][0], "http://s3.amazonaws.com/stu-testing/sample_videos/big-buck-bunny_trailer.webm?cb=",
+          "onFileRefresh called with correct url");
       });
+
     });
+
   });
 </script>
 </body>
