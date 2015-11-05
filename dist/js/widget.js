@@ -677,6 +677,13 @@ RiseVision.Video.Storage = function (data) {
       RiseVision.Video.showError("The selected video does not exist.");
     });
 
+    storage.addEventListener("rise-storage-file-throttled", function() {
+      var params = { "event": "storage file unavailable" };
+
+      RiseVision.Video.logEvent(params, true);
+      RiseVision.Video.showError("The selected video is temporarily unavailable.");
+    });
+
     storage.addEventListener("rise-storage-error", function() {
       var params = { "event": "storage error" };
 

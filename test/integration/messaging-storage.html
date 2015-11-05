@@ -66,6 +66,19 @@
       });
     });
 
+    suite("video file throttled or no storage subscription", function () {
+      suiteSetup(function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-file-throttled", {
+          "detail": null,
+          "bubbles": true
+        }));
+      });
+
+      test("should show the file unavailable message", function() {
+        assert.equal(document.querySelector(".message").innerHTML, "The selected video is temporarily unavailable.", "message is correct");
+      });
+    });
+
     suite("normal storage response", function() {
       suiteSetup(function() {
         storage.dispatchEvent(new CustomEvent("rise-storage-response", {

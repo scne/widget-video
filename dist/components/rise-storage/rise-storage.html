@@ -387,7 +387,13 @@
      */
     _handleStorageError: function(e, resp) {
       this._startTimer();
-      this.fire("rise-storage-error", resp);
+
+      if (this._isThrottled(resp)) {
+        this.fire("rise-storage-file-throttled", resp);
+      }
+      else {
+        this.fire("rise-storage-error", resp);
+      }
     },
 
     /**
@@ -885,6 +891,15 @@
     _isEmptyFolder: function(resp) {
       return (resp.files !== undefined) && (resp.files.length === 1) &&
         (resp.files[0].name.slice(-1) === "/");
+    },
+
+    _isThrottled: function(resp) {
+      if (resp && resp.request && resp.request.status) {
+        return resp.request.status === 403;
+      }
+      else {
+        return false;
+      }
     },
 
     /**

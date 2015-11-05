@@ -53,6 +53,10 @@
         "display_id": '"displayId"'
       };
 
+    sinon.stub(storage.$.ping, "generateRequest", function () {
+      storage._handlePingError();
+    });
+
     suiteSetup(function() {
       playStub = sinon.stub(RiseVision.Video, "play");
       clock = sinon.useFakeTimers();
@@ -154,6 +158,59 @@
 
       test("should not log a storage error when done is fired if the error has resolved itself on a refresh", function() {
         storage.dispatchEvent(new CustomEvent("rise-storage-error", {
+          "detail": null,
+          "bubbles": true
+        }));
+
+        // Resolve the error.
+        RiseVision.Video.onFileRefresh(window.gadget.settings.additionalParams.url);
+
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        params.event = "done";
+        params.file_url = window.gadget.settings.additionalParams.url;
+        params.file_format = "webm";
+
+        clock.tick(5000);
+
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
+      });
+    });
+
+    suite("storage file throttled or no storage subscription", function() {
+      var spyCall;
+
+      test("should log a storage file unavailable error", function() {
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-file-throttled", {
+          "detail": null,
+          "bubbles": true
+        }));
+
+        params.event = "storage file unavailable";
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
+      });
+
+      test("should log a storage file unavailable error when done is fired", function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-file-throttled", {
+          "detail": null,
+          "bubbles": true
+        }));
+
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        clock.tick(5000);
+        assert(spy.calledTwice);  // storage file unavailable + done
+
+        spyCall = RiseVision.Common.Logger.log.getCall(0);
+
+        assert.equal(spyCall.args[0], table);
+        assert.deepEqual(spyCall.args[1], params);
+      });
+
+      test("should not log a storage file unavailable error when done is fired if the error has resolved itself on a refresh", function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-file-throttled", {
           "detail": null,
           "bubbles": true
         }));

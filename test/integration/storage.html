@@ -45,6 +45,10 @@
       responded = false,
       listener;
 
+    sinon.stub(storage.$.ping, "generateRequest", function () {
+      storage._handlePingError();
+    });
+
     suite("Storage Initialization - file added", function () {
       var check = function(done) {
         if (responded) {
@@ -64,16 +68,11 @@
           storage.removeEventListener("rise-storage-response", listener);
         };
 
-        sinon.stub(storage.$.ping, "generateRequest", function () {
-          storage._handlePingError();
-        });
-
         storage.addEventListener("rise-storage-response", listener);
 
       });
 
       suiteTeardown(function() {
-        storage.$.ping.generateRequest.restore();
         RiseVision.Video.onFileInit.restore();
       });
 
@@ -118,6 +117,67 @@
 
       test("RiseVision.Video.onStorageRefresh called when file changed", function() {
         assert(onRefreshStub.calledOnce);
+      });
+
+    });
+
+    suite("Storage Errors", function() {
+      var params = { "event": ""},
+        onShowErrorStub, onLogEventStub;
+
+      setup(function() {
+        onShowErrorStub = sinon.stub(RiseVision.Video, "showError", function(){});
+        onLogEventStub = sinon.stub(RiseVision.Video, "logEvent", function(){});
+      });
+
+      teardown(function() {
+        RiseVision.Video.showError.restore();
+        RiseVision.Video.logEvent.restore();
+      });
+
+      test("should handle when 'no file' error occurs", function() {
+        params.event = "storage file not found";
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-no-file", {
+          "detail": null,
+          "bubbles": true
+        }));
+
+        assert(onLogEventStub.calledOnce, "logEvent() called once");
+        assert(onLogEventStub.calledWith(params, true), "logEvent() called with correct params");
+        assert(onShowErrorStub.calledOnce, "showError() called once");
+        assert(onShowErrorStub.calledWith("The selected video does not exist."),
+          "showError() called with correct message");
+      });
+
+      test("should handle when 'file throttled' error occurs", function() {
+        params.event = "storage file unavailable";
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-file-throttled", {
+          "detail": null,
+          "bubbles": true
+        }));
+
+        assert(onLogEventStub.calledOnce, "logEvent() called once");
+        assert(onLogEventStub.calledWith(params, true), "logEvent() called with correct params");
+        assert(onShowErrorStub.calledOnce, "showError() called once");
+        assert(onShowErrorStub.calledWith("The selected video is temporarily unavailable."),
+          "showError() called with correct message");
+      });
+
+      test("should handle when a general error occurs", function() {
+        params.event = "storage error";
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-error", {
+          "detail": null,
+          "bubbles": true
+        }));
+
+        assert(onLogEventStub.calledOnce, "logEvent() called once");
+        assert(onLogEventStub.calledWith(params, true), "logEvent() called with correct params");
+        assert(onShowErrorStub.calledOnce, "showError() called once");
+        assert(onShowErrorStub.calledWith("Sorry, there was a problem playing the video from Storage."),
+          "showError() called with correct message");
       });
 
     });
