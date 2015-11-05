@@ -66,7 +66,7 @@
       test("RiseVision.Video.onFileInit should be called", function() {
 
         assert(onInitSpy.calledOnce, "onFileInit called once");
-        assert.include(onInitSpy.args[0][0], "http://s3.amazonaws.com/stu-testing/sample_videos/big-buck-bunny_trailer.webm?cb=",
+        assert(onInitSpy.calledWith("http://s3.amazonaws.com/stu-testing/sample_videos/big-buck-bunny_trailer.webm"),
           "onFileInit called with correct url");
       });
     });

@@ -716,7 +716,7 @@ RiseVision.Video.NonStorage = function (data) {
 
   var _isLoading = true;
 
-  function _getFile() {
+  function _getFile(omitCacheBuster) {
     riseCache.getFile(data.url, function (response, error) {
       if (!error) {
 
@@ -740,13 +740,13 @@ RiseVision.Video.NonStorage = function (data) {
           "url": response.url
         });
       }
-    });
+    }, omitCacheBuster);
   }
 
   function _startRefreshInterval() {
     if (_refreshIntervalId === null) {
       _refreshIntervalId = setInterval(function () {
-        _getFile();
+        _getFile(false);
       }, _refreshDuration);
     }
   }
@@ -755,7 +755,7 @@ RiseVision.Video.NonStorage = function (data) {
    *  Public Methods
    */
   function init() {
-    _getFile();
+    _getFile(true);
   }
 
   return {
