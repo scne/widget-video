@@ -225,6 +225,15 @@
     _isChanged: false,
 
     /**
+     * Whether or not a file is throttled.
+     *
+     * @property _fileThrottled
+     * @type boolean
+     * @default false
+     */
+    _fileThrottled: false,
+
+    /**
      * Handle to the parent Chrome App, in case the page is being ran in offline-player
      * @property offlinePlayer
      * @default null
@@ -352,9 +361,21 @@
             this._setIsFile(resp.response);
           }
 
+          // File
           if (this._isFile) {
             if (this._isLoading) {
               this._setFileUrl(resp.response);
+            }
+
+            if (this._isThrottled(resp.response, 0)) {
+              this._fileThrottled = true;
+              this._startTimer();
+              this.fire("rise-storage-file-throttled", this._fileUrl);
+
+              return;
+            }
+            else {
+              this._fileThrottled = false;
             }
 
             if (this._isCacheRunning) {
@@ -387,13 +408,7 @@
      */
     _handleStorageError: function(e, resp) {
       this._startTimer();
-
-      if (this._isThrottled(resp)) {
-        this.fire("rise-storage-file-throttled", resp);
-      }
-      else {
-        this.fire("rise-storage-error", resp);
-      }
+      this.fire("rise-storage-error", resp);
     },
 
     /**
@@ -862,9 +877,15 @@
         this.refresh = (this.refresh < 5) ? 5 : this.refresh;
 
         this.debounce("refresh", function() {
+          // File
           if (this._isFile) {
             if (this._isCacheRunning) {
-              this._getFileFromCache();
+              if (this._fileThrottled) {
+                this._loadStorage();
+              }
+              else {
+                this._getFileFromCache();
+              }
             }
             else {
               this._loadStorage();
@@ -893,9 +914,9 @@
         (resp.files[0].name.slice(-1) === "/");
     },
 
-    _isThrottled: function(resp) {
-      if (resp && resp.request && resp.request.status) {
-        return resp.request.status === 403;
+    _isThrottled: function(resp, index) {
+      if (resp && resp.files && resp.files[index] && resp.files[index].isThrottled) {
+        return resp.files[index].isThrottled;
       }
       else {
         return false;

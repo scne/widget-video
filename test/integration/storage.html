@@ -131,6 +131,8 @@
       });
 
       teardown(function() {
+        delete params.url;
+
         RiseVision.Video.showError.restore();
         RiseVision.Video.logEvent.restore();
       });
@@ -151,10 +153,11 @@
       });
 
       test("should handle when 'file throttled' error occurs", function() {
-        params.event = "storage file unavailable";
+        params.event = "storage file throttled";
+        params.url = window.gadget.settings.additionalParams.url;
 
         storage.dispatchEvent(new CustomEvent("rise-storage-file-throttled", {
-          "detail": null,
+          "detail": window.gadget.settings.additionalParams.url,
           "bubbles": true
         }));
 

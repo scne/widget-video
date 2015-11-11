@@ -180,28 +180,29 @@
     suite("storage file throttled or no storage subscription", function() {
       var spyCall;
 
-      test("should log a storage file unavailable error", function() {
+      test("should log a storage file throttled error", function() {
         spy = sinon.spy(RiseVision.Common.Logger, "log");
 
         storage.dispatchEvent(new CustomEvent("rise-storage-file-throttled", {
-          "detail": null,
+          "detail": window.gadget.settings.additionalParams.url,
           "bubbles": true
         }));
 
-        params.event = "storage file unavailable";
+        params.event = "storage file throttled";
+
         assert(spy.calledOnce);
         assert(spy.calledWith(table, params));
       });
 
-      test("should log a storage file unavailable error when done is fired", function() {
+      test("should log a storage file throttled error when done is fired", function() {
         storage.dispatchEvent(new CustomEvent("rise-storage-file-throttled", {
-          "detail": null,
+          "detail": window.gadget.settings.additionalParams.url,
           "bubbles": true
         }));
 
         spy = sinon.spy(RiseVision.Common.Logger, "log");
         clock.tick(5000);
-        assert(spy.calledTwice);  // storage file unavailable + done
+        assert(spy.calledTwice);  // storage file throttled + done
 
         spyCall = RiseVision.Common.Logger.log.getCall(0);
 
@@ -211,7 +212,7 @@
 
       test("should not log a storage file unavailable error when done is fired if the error has resolved itself on a refresh", function() {
         storage.dispatchEvent(new CustomEvent("rise-storage-file-throttled", {
-          "detail": null,
+          "detail": window.gadget.settings.additionalParams.url,
           "bubbles": true
         }));
 
