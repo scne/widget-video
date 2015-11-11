@@ -9,7 +9,7 @@ describe("logEvent", function() {
 
   afterEach(function() {
     RiseVision.Common.Logger.log.restore();
-  })
+  });
 
   it("should call spy with correct parameters when all optional parameters are set", function() {
     var params = {

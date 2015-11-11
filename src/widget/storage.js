@@ -42,6 +42,13 @@ RiseVision.Video.Storage = function (data) {
       RiseVision.Video.showError("The selected video does not exist.");
     });
 
+    storage.addEventListener("rise-storage-file-throttled", function(e) {
+      var params = { "event": "storage file throttled", "url": e.detail };
+
+      RiseVision.Video.logEvent(params, true);
+      RiseVision.Video.showError("The selected video is temporarily unavailable.");
+    });
+
     storage.addEventListener("rise-storage-error", function() {
       var params = { "event": "storage error" };
 

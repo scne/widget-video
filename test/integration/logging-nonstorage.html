@@ -63,8 +63,6 @@
     });
 
     suite("play", function() {
-      var spyCall, spyObj, paramsObj;
-
       setup(function() {
         spy = sinon.spy(RiseVision.Common.Logger, "log");
       });
@@ -78,18 +76,7 @@
 
         assert(spy.calledOnce);
 
-        spyCall = RiseVision.Common.Logger.log.getCall(0);
-        spyObj = spyCall.args[1];
-        paramsObj = JSON.parse(JSON.stringify(params));
-
-        assert.equal(spyCall.args[0], table, "called with correct table name");
-        assert.include(spyObj.file_url, params.file_url + "?cb=", "called with correct file url param");
-
-        // remove the file_url property so a deep comparison of the rest of the object can be done next
-        delete spyObj.file_url;
-        delete paramsObj.file_url;
-
-        assert.deepEqual(spyObj, paramsObj, "called with correct additional params");
+        assert(spy.calledWith(table, params));
       });
     });
 
@@ -117,19 +104,7 @@
         RiseVision.Video.playerError();
 
         assert(spy.calledOnce);
-
-        spyCall = RiseVision.Common.Logger.log.getCall(0);
-        spyObj = spyCall.args[1];
-        paramsObj = JSON.parse(JSON.stringify(params));
-
-        assert.equal(spyCall.args[0], table, "called with correct table name");
-        assert.include(spyObj.file_url, params.file_url + "?cb=", "called with correct file url param");
-
-        // remove the file_url property so a deep comparison of the rest of the object can be done next
-        delete spyObj.file_url;
-        delete paramsObj.file_url;
-
-        assert.deepEqual(spyObj, paramsObj, "called with correct additional params");
+        assert(spy.calledWith(table, params));
       });
 
       test("should log a player error with an error type", function() {
@@ -139,19 +114,7 @@
         RiseVision.Video.playerError({ "type": params.event_details });
 
         assert(spy.calledOnce);
-
-        spyCall = RiseVision.Common.Logger.log.getCall(0);
-        spyObj = spyCall.args[1];
-        paramsObj = JSON.parse(JSON.stringify(params));
-
-        assert.equal(spyCall.args[0], table, "called with correct table name");
-        assert.include(spyObj.file_url, params.file_url + "?cb=", "called with correct file url param");
-
-        // remove the file_url property so a deep comparison of the rest of the object can be done next
-        delete spyObj.file_url;
-        delete paramsObj.file_url;
-
-        assert.deepEqual(spyObj, paramsObj, "called with correct additional params");
+        assert(spy.calledWith(table, params));
       });
 
       test("should log a player error with an error message", function() {
@@ -161,19 +124,7 @@
         RiseVision.Video.playerError({ "message": params.event_details });
 
         assert(spy.calledOnce);
-
-        spyCall = RiseVision.Common.Logger.log.getCall(0);
-        spyObj = spyCall.args[1];
-        paramsObj = JSON.parse(JSON.stringify(params));
-
-        assert.equal(spyCall.args[0], table, "called with correct table name");
-        assert.include(spyObj.file_url, params.file_url + "?cb=", "called with correct file url param");
-
-        // remove the file_url property so a deep comparison of the rest of the object can be done next
-        delete spyObj.file_url;
-        delete paramsObj.file_url;
-
-        assert.deepEqual(spyObj, paramsObj, "called with correct additional params");
+        assert(spy.calledWith(table, params));
       });
 
       test("should log a player error with an error type and message", function() {
@@ -183,19 +134,7 @@
         RiseVision.Video.playerError({ "type": "setup", "message": "Error loading player: No media sources found" });
 
         assert(spy.calledOnce);
-
-        spyCall = RiseVision.Common.Logger.log.getCall(0);
-        spyObj = spyCall.args[1];
-        paramsObj = JSON.parse(JSON.stringify(params));
-
-        assert.equal(spyCall.args[0], table, "called with correct table name");
-        assert.include(spyObj.file_url, params.file_url + "?cb=", "called with correct file url param");
-
-        // remove the file_url property so a deep comparison of the rest of the object can be done next
-        delete spyObj.file_url;
-        delete paramsObj.file_url;
-
-        assert.deepEqual(spyObj, paramsObj, "called with correct additional params");
+        assert(spy.calledWith(table, params));
       });
 
       test("should not log a player error when done is fired if the error has resolved itself on a refresh", function() {
