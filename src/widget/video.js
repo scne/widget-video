@@ -239,7 +239,8 @@ RiseVision.Video = (function (gadgets) {
   // An error occurred with JW Player.
   function playerError(error) {
     var details = null,
-      params = {};
+      params = {},
+      message = "Sorry, there was a problem playing the video.";
 
     _playbackError = true;
 
@@ -253,13 +254,19 @@ RiseVision.Video = (function (gadgets) {
       else if (error.message) {
         details = error.message;
       }
+
+      // Check if there is an issue with the format.
+      if (error.message && (error.message === "Error loading media: File could not be played")) {
+        message = "There was a problem playing that video. It could be that we don't " +
+        "support that format or it is not encoded correctly.";
+      }
     }
 
     params.event = "player error";
     params.event_details = details;
 
     logEvent(params, true);
-    showError("Sorry, there was a problem playing the video.");
+    showError(message);
   }
 
   function stop() {

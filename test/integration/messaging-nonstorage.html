@@ -62,10 +62,18 @@
     });
 
     suite("player error message", function() {
-      test("should show player error message", function() {
+      test("should show playback error message", function() {
         RiseVision.Video.playerError();
 
         assert.equal(document.querySelector(".message").innerHTML, "Sorry, there was a problem playing the video.", "message text");
+        assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
+      });
+
+      test("should show format error message", function() {
+        RiseVision.Video.playerError({ "message": "Error loading media: File could not be played" });
+
+        assert.equal(document.querySelector(".message").innerHTML, "There was a problem playing " +
+          "that video. It could be that we don't support that format or it is not encoded correctly.", "message text");
         assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
       });
 
