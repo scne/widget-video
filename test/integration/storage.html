@@ -148,7 +148,7 @@
         assert(onLogEventStub.calledOnce, "logEvent() called once");
         assert(onLogEventStub.calledWith(params, true), "logEvent() called with correct params");
         assert(onShowErrorStub.calledOnce, "showError() called once");
-        assert(onShowErrorStub.calledWith("The selected video does not exist."),
+        assert(onShowErrorStub.calledWith("The selected video does not exist or has been moved to Trash."),
           "showError() called with correct message");
       });
 

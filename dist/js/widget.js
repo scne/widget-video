@@ -681,7 +681,7 @@ RiseVision.Video.Storage = function (data) {
       var params = { "event": "storage file not found" };
 
       RiseVision.Video.logEvent(params, true);
-      RiseVision.Video.showError("The selected video does not exist.");
+      RiseVision.Video.showError("The selected video does not exist or has been moved to Trash.");
     });
 
     storage.addEventListener("rise-storage-file-throttled", function(e) {
