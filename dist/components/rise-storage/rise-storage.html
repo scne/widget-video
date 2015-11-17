@@ -616,6 +616,7 @@
     _getFileFromCache: function() {
 
       this._cacheRequestMethod = "HEAD";
+      this._hasAttemptedGetRequest = false;
 
       if (this._isLoading) {
         this._cacheUrl = this._baseCacheUrl + "?url=" + this._fileUrl;
@@ -635,6 +636,7 @@
     _getFilesFromCache: function(resp) {
 
       this._cacheRequestMethod = "HEAD";
+      this._hasAttemptedGetRequest = false;
 
       var self = this;
 
