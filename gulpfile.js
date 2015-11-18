@@ -25,7 +25,9 @@
   var appJSFiles = [
     "src/**/*.js",
     "!./src/components/**/*",
-    "!./src/widget/player.js"
+    "!./src/widget/player-base.js",
+    "!./src/widget/player-file.js",
+    "!./src/widget/player-folder.js"
     ];
 
   gulp.task("clean-bower", function(cb){
@@ -59,7 +61,7 @@
   });
 
   gulp.task("source", ["lint"], function () {
-    return gulp.src(['./src/settings.html', './src/widget.html', './src/player.html'])
+    return gulp.src(['./src/settings.html', './src/widget.html', './src/player-file.html', './src/player-folder.html'])
       .pipe(usemin({
         css: [minifyCSS()],
         js: [sourcemaps.init(), uglify(), sourcemaps.write()]
@@ -68,7 +70,7 @@
   });
 
   gulp.task("unminify", function () {
-    return gulp.src(['./src/settings.html', './src/widget.html', './src/player.html'])
+    return gulp.src(['./src/settings.html', './src/widget.html', './src/player-file.html', './src/player-folder.html'])
       .pipe(usemin({
         css: [rename(function (path) {
           path.basename = path.basename.substring(0, path.basename.indexOf(".min"))
@@ -163,7 +165,7 @@
       "src/components/widget-common/dist/config.js",
       "src/config/test.js",
       "src/widget/video.js",
-      "src/widget/player.js",
+      "src/widget/player-file.js",
       "test/unit/widget/player-spec.js",
       "test/unit/widget/video-spec.js"
     ]}

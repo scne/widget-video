@@ -1,4 +1,4 @@
-/* global gadgets, config */
+/* global gadgets, config, _ */
 
 var RiseVision = RiseVision || {};
 RiseVision.Video = {};
@@ -6,7 +6,7 @@ RiseVision.Video = {};
 RiseVision.Video = (function (gadgets) {
   "use strict";
 
-  var _additionalParams;
+  var _additionalParams, _mode;
 
   var _prefs = null,
     _storage = null,
@@ -19,7 +19,7 @@ RiseVision.Video = (function (gadgets) {
 
   var _currentFrame = 0;
 
-  var _currentFile = "";
+  var _currentFiles = [];
 
   var _error = null,
     _errorTimer = null,
@@ -60,11 +60,22 @@ RiseVision.Video = (function (gadgets) {
     }, 5000);
   }
 
+  function _getCurrentFileData() {
+    var frameObj = _frameController.getFrameObject(_currentFrame);
+
+    if (frameObj) {
+      return frameObj.getPlaybackData();
+    }
+
+    return null;
+  }
+
   // Get the parameters to pass to the event logger.
   function _getLoggerParams(params, cb) {
     var json = {},
       utils = RiseVision.Common.LoggerUtils,
-      url = null;
+      url = null,
+      fileData = null;
 
     if (params.event) {
       json.event = params.event;
@@ -77,8 +88,20 @@ RiseVision.Video = (function (gadgets) {
     if (params.url) {
       url = params.url;
     }
-    else if (_currentFile) {
-      url = _currentFile;
+    else {
+      if (_currentFiles && _currentFiles.length > 0) {
+        if (_mode === "file") {
+          url = _currentFiles[0];
+        }
+        else if (_mode === "folder") {
+          // retrieve the currently played file info from player
+          fileData = _getCurrentFileData();
+
+          if (fileData) {
+            url = _currentFiles[fileData.index];
+          }
+        }
+      }
     }
 
     json.file_url = url;
@@ -118,8 +141,14 @@ RiseVision.Video = (function (gadgets) {
     });
   }
 
-  function onFileInit(url) {
-    _currentFile = url;
+  function onFileInit(urls) {
+    if (_mode === "file") {
+      // urls value will be a string
+      _currentFiles[0] = urls;
+    } else if (_mode === "folder") {
+      // urls value will be an array
+      _currentFiles = urls;
+    }
 
     _message.hide();
 
@@ -128,8 +157,14 @@ RiseVision.Video = (function (gadgets) {
     }
   }
 
-  function onFileRefresh(url) {
-    _currentFile = url;
+  function onFileRefresh(urls) {
+    if (_mode === "file") {
+      // urls value will be a string of one url
+      _currentFiles[0] = urls;
+    } else if (_mode === "folder") {
+      // urls value will be an array of urls
+      _currentFiles = urls;
+    }
 
     // in case refreshed file fixes an error with previous file, ensure flag is removed so playback is attempted again
     _playbackError = false;
@@ -168,10 +203,16 @@ RiseVision.Video = (function (gadgets) {
         frameObj.play();
       } else {
 
-        if (_currentFile && _currentFile !== "") {
-          // add frame and create the player
-          _frameController.add(0);
-          _frameController.createFramePlayer(0, _additionalParams, _currentFile, config.SKIN, "player.html");
+        if (_currentFiles && _currentFiles.length > 0) {
+          if (_mode === "file") {
+            // add frame and create the player
+            _frameController.add(0);
+            _frameController.createFramePlayer(0, _additionalParams, _currentFiles[0], config.SKIN, "player-file.html");
+          }
+          else if (_mode === "folder") {
+            _frameController.add(0);
+            _frameController.createFramePlayer(0, _additionalParams, _currentFiles, config.SKIN, "player-folder.html");
+          }
         }
 
       }
@@ -199,41 +240,45 @@ RiseVision.Video = (function (gadgets) {
     }
   }
 
-  function setAdditionalParams(names, values) {
+  function setAdditionalParams(params, mode) {
     var isStorageFile;
 
-    if (Array.isArray(names) && names.length > 0 && names[0] === "additionalParams") {
-      if (Array.isArray(values) && values.length > 0) {
-        _additionalParams = JSON.parse(values[0]);
-        _prefs = new gadgets.Prefs();
+    _additionalParams = _.clone(params);
+    _mode = mode;
+    _prefs = new gadgets.Prefs();
 
-        document.getElementById("videoContainer").style.height = _prefs.getInt("rsH") + "px";
+    document.getElementById("videoContainer").style.height = _prefs.getInt("rsH") + "px";
 
-        _additionalParams.width = _prefs.getInt("rsW");
-        _additionalParams.height = _prefs.getInt("rsH");
+    _additionalParams.width = _prefs.getInt("rsW");
+    _additionalParams.height = _prefs.getInt("rsH");
 
-        _message = new RiseVision.Common.Message(document.getElementById("videoContainer"),
-          document.getElementById("messageContainer"));
+    _message = new RiseVision.Common.Message(document.getElementById("videoContainer"),
+      document.getElementById("messageContainer"));
 
-        // show wait message while Storage initializes
-        _message.show("Please wait while your video is downloaded.");
+    // show wait message while Storage initializes
+    _message.show("Please wait while your video is downloaded.");
 
-        _frameController = new RiseVision.Common.Video.FrameController();
+    _frameController = new RiseVision.Common.Video.FrameController();
 
-        isStorageFile = (Object.keys(_additionalParams.storage).length !== 0);
+    if (_mode === "file") {
+      isStorageFile = (Object.keys(_additionalParams.storage).length !== 0);
 
-        if (!isStorageFile) {
-          _nonStorage = new RiseVision.Video.NonStorage(_additionalParams);
-          _nonStorage.init();
-        } else {
-          // create and initialize the Storage module instance
-          _storage = new RiseVision.Video.Storage(_additionalParams);
-          _storage.init();
-        }
-
-        _ready();
+      if (!isStorageFile) {
+        _nonStorage = new RiseVision.Video.NonStorage(_additionalParams);
+        _nonStorage.init();
+      } else {
+        // create and initialize the Storage file instance
+        _storage = new RiseVision.Video.StorageFile(_additionalParams);
+        _storage.init();
       }
     }
+    else if (_mode === "folder") {
+      // create and initialize the Storage folder instance
+      _storage = new RiseVision.Video.StorageFolder(_additionalParams);
+      _storage.init();
+    }
+
+    _ready();
   }
 
   // An error occurred with JW Player.
@@ -258,7 +303,7 @@ RiseVision.Video = (function (gadgets) {
       // Check if there is an issue with the format.
       if (error.message && (error.message === "Error loading media: File could not be played")) {
         message = "There was a problem playing that video. It could be that we don't " +
-        "support that format or it is not encoded correctly.";
+          "support that format or it is not encoded correctly.";
       }
     }
 
