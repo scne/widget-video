@@ -248,7 +248,9 @@ RiseVision.Video = (function (gadgets) {
   }
 
   function setAdditionalParams(params, mode) {
-    var isStorageFile;
+    var logParams = {},
+      details = null,
+      isStorageFile;
 
     _additionalParams = _.clone(params);
     _mode = mode;
@@ -271,19 +273,29 @@ RiseVision.Video = (function (gadgets) {
       isStorageFile = (Object.keys(_additionalParams.storage).length !== 0);
 
       if (!isStorageFile) {
+        details = "custom";
+
         _nonStorage = new RiseVision.Video.NonStorage(_additionalParams);
         _nonStorage.init();
       } else {
+        details = "storage";
+
         // create and initialize the Storage file instance
         _storage = new RiseVision.Video.StorageFile(_additionalParams);
         _storage.init();
       }
     }
     else if (_mode === "folder") {
+      details = "storage";
+
       // create and initialize the Storage folder instance
       _storage = new RiseVision.Video.StorageFolder(_additionalParams);
       _storage.init();
     }
+
+    logParams.event = "configuration";
+    logParams.event_details = details;
+    logEvent(logParams, false);
 
     _ready();
   }

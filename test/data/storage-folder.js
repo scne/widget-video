@@ -5,7 +5,12 @@
   window.gadget.settings = {
     "params": {},
     "additionalParams": {
-      "url": "https://www.googleapis.com/storage/v1/b/risemedialibrary-b428b4e8-c8b9-41d5-8a10-b4193c789443/o?prefix=Widgets%2Fvideos%2F",
+      "url": "",
+      "selector": {
+        "selection": "single-folder",
+        "storageName": "Widgets/videos/",
+        "url": "https://www.googleapis.com/storage/v1/b/risemedialibrary-b428b4e8-c8b9-41d5-8a10-b4193c789443/o?prefix=Widgets%2Fvideos%2F"
+      },
       "storage": {
         "folder": "Widgets/videos/",
         "fileName": "",

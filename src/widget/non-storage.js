@@ -11,8 +11,10 @@ RiseVision.Video.NonStorage = function (data) {
 
   var _isLoading = true;
 
+  var _url = "";
+
   function _getFile(omitCacheBuster) {
-    riseCache.getFile(data.url, function(response, error) {
+    riseCache.getFile(_url, function (response, error) {
       if (!error) {
 
         if (_isLoading) {
@@ -52,6 +54,9 @@ RiseVision.Video.NonStorage = function (data) {
    *  Public Methods
    */
   function init() {
+    // Handle pre-merge use of "url" setting property
+    _url = (data.url && data.url !== "") ? data.url : data.selector.url;
+
     _getFile(true);
   }
 
