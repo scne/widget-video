@@ -108,6 +108,7 @@ RiseVision.Video.StorageFolder = function (data) {
       RiseVision.Video.showError("Sorry, there was a problem playing the video from Storage.");
     });
 
+    storage.setAttribute("fileType", "video");
     storage.setAttribute("companyId", data.storage.companyId);
     storage.setAttribute("folder", data.storage.folder);
     storage.setAttribute("env", config.STORAGE_ENV);
