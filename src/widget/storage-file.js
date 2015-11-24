@@ -3,7 +3,7 @@
 var RiseVision = RiseVision || {};
 RiseVision.Video = RiseVision.Video || {};
 
-RiseVision.Video.Storage = function (data) {
+RiseVision.Video.StorageFile = function (data) {
   "use strict";
 
   var _initialLoad = true;

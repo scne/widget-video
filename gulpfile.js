@@ -25,7 +25,9 @@
   var appJSFiles = [
     "src/**/*.js",
     "!./src/components/**/*",
-    "!./src/widget/player.js"
+    "!./src/widget/player-base.js",
+    "!./src/widget/player-file.js",
+    "!./src/widget/player-folder.js"
     ];
 
   gulp.task("clean-bower", function(cb){
@@ -59,7 +61,7 @@
   });
 
   gulp.task("source", ["lint"], function () {
-    return gulp.src(['./src/settings.html', './src/widget.html', './src/player.html'])
+    return gulp.src(['./src/settings.html', './src/widget.html', './src/player-file.html', './src/player-folder.html'])
       .pipe(usemin({
         css: [minifyCSS()],
         js: [sourcemaps.init(), uglify(), sourcemaps.write()]
@@ -68,7 +70,7 @@
   });
 
   gulp.task("unminify", function () {
-    return gulp.src(['./src/settings.html', './src/widget.html', './src/player.html'])
+    return gulp.src(['./src/settings.html', './src/widget.html', './src/player-file.html', './src/player-folder.html'])
       .pipe(usemin({
         css: [rename(function (path) {
           path.basename = path.basename.substring(0, path.basename.indexOf(".min"))
@@ -156,6 +158,33 @@
       "test/unit/settings/**/*spec.js"]}
   ));
 
+  gulp.task("test:unit:player:base", factory.testUnitAngular(
+    {testFiles: [
+      "src/widget/player-base.js",
+      "test/unit/widget/player-base-spec.js"
+    ]}
+  ));
+
+  gulp.task("test:unit:player:file", factory.testUnitAngular(
+    {testFiles: [
+      "src/widget/player-base.js",
+      "src/widget/player-file.js",
+      "test/unit/widget/player-file-spec.js"
+    ]}
+  ));
+
+  gulp.task("test:unit:player:folder", factory.testUnitAngular(
+    {testFiles: [
+      "src/widget/player-base.js",
+      "src/widget/player-folder.js",
+      "test/unit/widget/player-folder-spec.js"
+    ]}
+  ));
+
+  gulp.task("test:unit:player", function(cb) {
+    runSequence("test:unit:player:base", "test:unit:player:file", "test:unit:player:folder", cb);
+  });
+
   gulp.task("test:unit:widget", factory.testUnitAngular(
     {testFiles: [
       "node_modules/widget-tester/mocks/gadget-mocks.js",
@@ -163,14 +192,12 @@
       "src/components/widget-common/dist/config.js",
       "src/config/test.js",
       "src/widget/video.js",
-      "src/widget/player.js",
-      "test/unit/widget/player-spec.js",
       "test/unit/widget/video-spec.js"
     ]}
   ));
 
   gulp.task("test:unit", function(cb) {
-    runSequence("test:unit:widget", "test:unit:settings",cb);
+    runSequence("test:unit:player", "test:unit:widget", "test:unit:settings",cb);
   });
 
   gulp.task("test:integration:rise-storage", function(cb) {

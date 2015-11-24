@@ -349,7 +349,7 @@ if (typeof config === "undefined") {
   }
 }
 
-/* global gadgets, config */
+/* global gadgets, config, _ */
 
 var RiseVision = RiseVision || {};
 RiseVision.Video = {};
@@ -357,7 +357,7 @@ RiseVision.Video = {};
 RiseVision.Video = (function (gadgets) {
   "use strict";
 
-  var _additionalParams;
+  var _additionalParams, _mode;
 
   var _prefs = null,
     _storage = null,
@@ -370,7 +370,7 @@ RiseVision.Video = (function (gadgets) {
 
   var _currentFrame = 0;
 
-  var _currentFile = "";
+  var _currentFiles = [];
 
   var _error = null,
     _errorTimer = null,
@@ -411,11 +411,22 @@ RiseVision.Video = (function (gadgets) {
     }, 5000);
   }
 
+  function _getCurrentFileData() {
+    var frameObj = _frameController.getFrameObject(_currentFrame);
+
+    if (frameObj) {
+      return frameObj.getPlaybackData();
+    }
+
+    return null;
+  }
+
   // Get the parameters to pass to the event logger.
   function _getLoggerParams(params, cb) {
     var json = {},
       utils = RiseVision.Common.LoggerUtils,
-      url = null;
+      url = null,
+      fileData = null;
 
     if (params.event) {
       json.event = params.event;
@@ -428,8 +439,20 @@ RiseVision.Video = (function (gadgets) {
     if (params.url) {
       url = params.url;
     }
-    else if (_currentFile) {
-      url = _currentFile;
+    else {
+      if (_currentFiles && _currentFiles.length > 0) {
+        if (_mode === "file") {
+          url = _currentFiles[0];
+        }
+        else if (_mode === "folder") {
+          // retrieve the currently played file info from player
+          fileData = _getCurrentFileData();
+
+          if (fileData) {
+            url = _currentFiles[fileData.index];
+          }
+        }
+      }
     }
 
     json.file_url = url;
@@ -469,8 +492,14 @@ RiseVision.Video = (function (gadgets) {
     });
   }
 
-  function onFileInit(url) {
-    _currentFile = url;
+  function onFileInit(urls) {
+    if (_mode === "file") {
+      // urls value will be a string
+      _currentFiles[0] = urls;
+    } else if (_mode === "folder") {
+      // urls value will be an array
+      _currentFiles = urls;
+    }
 
     _message.hide();
 
@@ -479,8 +508,14 @@ RiseVision.Video = (function (gadgets) {
     }
   }
 
-  function onFileRefresh(url) {
-    _currentFile = url;
+  function onFileRefresh(urls) {
+    if (_mode === "file") {
+      // urls value will be a string of one url
+      _currentFiles[0] = urls;
+    } else if (_mode === "folder") {
+      // urls value will be an array of urls
+      _currentFiles = urls;
+    }
 
     // in case refreshed file fixes an error with previous file, ensure flag is removed so playback is attempted again
     _playbackError = false;
@@ -519,10 +554,16 @@ RiseVision.Video = (function (gadgets) {
         frameObj.play();
       } else {
 
-        if (_currentFile && _currentFile !== "") {
-          // add frame and create the player
-          _frameController.add(0);
-          _frameController.createFramePlayer(0, _additionalParams, _currentFile, config.SKIN, "player.html");
+        if (_currentFiles && _currentFiles.length > 0) {
+          if (_mode === "file") {
+            // add frame and create the player
+            _frameController.add(0);
+            _frameController.createFramePlayer(0, _additionalParams, _currentFiles[0], config.SKIN, "player-file.html");
+          }
+          else if (_mode === "folder") {
+            _frameController.add(0);
+            _frameController.createFramePlayer(0, _additionalParams, _currentFiles, config.SKIN, "player-folder.html");
+          }
         }
 
       }
@@ -550,41 +591,45 @@ RiseVision.Video = (function (gadgets) {
     }
   }
 
-  function setAdditionalParams(names, values) {
+  function setAdditionalParams(params, mode) {
     var isStorageFile;
 
-    if (Array.isArray(names) && names.length > 0 && names[0] === "additionalParams") {
-      if (Array.isArray(values) && values.length > 0) {
-        _additionalParams = JSON.parse(values[0]);
-        _prefs = new gadgets.Prefs();
+    _additionalParams = _.clone(params);
+    _mode = mode;
+    _prefs = new gadgets.Prefs();
 
-        document.getElementById("videoContainer").style.height = _prefs.getInt("rsH") + "px";
+    document.getElementById("videoContainer").style.height = _prefs.getInt("rsH") + "px";
 
-        _additionalParams.width = _prefs.getInt("rsW");
-        _additionalParams.height = _prefs.getInt("rsH");
+    _additionalParams.width = _prefs.getInt("rsW");
+    _additionalParams.height = _prefs.getInt("rsH");
 
-        _message = new RiseVision.Common.Message(document.getElementById("videoContainer"),
-          document.getElementById("messageContainer"));
+    _message = new RiseVision.Common.Message(document.getElementById("videoContainer"),
+      document.getElementById("messageContainer"));
 
-        // show wait message while Storage initializes
-        _message.show("Please wait while your video is downloaded.");
+    // show wait message while Storage initializes
+    _message.show("Please wait while your video is downloaded.");
 
-        _frameController = new RiseVision.Common.Video.FrameController();
+    _frameController = new RiseVision.Common.Video.FrameController();
 
-        isStorageFile = (Object.keys(_additionalParams.storage).length !== 0);
+    if (_mode === "file") {
+      isStorageFile = (Object.keys(_additionalParams.storage).length !== 0);
 
-        if (!isStorageFile) {
-          _nonStorage = new RiseVision.Video.NonStorage(_additionalParams);
-          _nonStorage.init();
-        } else {
-          // create and initialize the Storage module instance
-          _storage = new RiseVision.Video.Storage(_additionalParams);
-          _storage.init();
-        }
-
-        _ready();
+      if (!isStorageFile) {
+        _nonStorage = new RiseVision.Video.NonStorage(_additionalParams);
+        _nonStorage.init();
+      } else {
+        // create and initialize the Storage file instance
+        _storage = new RiseVision.Video.StorageFile(_additionalParams);
+        _storage.init();
       }
     }
+    else if (_mode === "folder") {
+      // create and initialize the Storage folder instance
+      _storage = new RiseVision.Video.StorageFolder(_additionalParams);
+      _storage.init();
+    }
+
+    _ready();
   }
 
   // An error occurred with JW Player.
@@ -609,7 +654,7 @@ RiseVision.Video = (function (gadgets) {
       // Check if there is an issue with the format.
       if (error.message && (error.message === "Error loading media: File could not be played")) {
         message = "There was a problem playing that video. It could be that we don't " +
-        "support that format or it is not encoded correctly.";
+          "support that format or it is not encoded correctly.";
       }
     }
 
@@ -645,7 +690,7 @@ RiseVision.Video = (function (gadgets) {
 var RiseVision = RiseVision || {};
 RiseVision.Video = RiseVision.Video || {};
 
-RiseVision.Video.Storage = function (data) {
+RiseVision.Video.StorageFile = function (data) {
   "use strict";
 
   var _initialLoad = true;
@@ -702,6 +747,129 @@ RiseVision.Video.Storage = function (data) {
     storage.setAttribute("fileName", data.storage.fileName);
     storage.setAttribute("companyId", data.storage.companyId);
     storage.setAttribute("env", config.STORAGE_ENV);
+    storage.go();
+  }
+
+  return {
+    "init": init
+  };
+};
+
+/* global config, _ */
+
+var RiseVision = RiseVision || {};
+RiseVision.Video = RiseVision.Video || {};
+
+RiseVision.Video.StorageFolder = function (data) {
+  "use strict";
+
+  var _initialLoad = true;
+
+  var _files = [];
+
+  function _getUrls() {
+    return _.pluck(_files, "url");
+  }
+
+  function _getExistingFile(file) {
+    return _.find(_files, function (f) {
+      return file.name === f.name;
+    });
+  }
+
+  function _deleteFile(file) {
+    var existing = _getExistingFile(file);
+
+    if (existing) {
+      _files.splice(_files.indexOf(existing), 1);
+    }
+  }
+
+  function _changeFile(file) {
+    var existing = _getExistingFile(file);
+
+    if (existing) {
+      existing.url = file.url;
+    }
+  }
+
+  function _addFile(file) {
+    var existing = _getExistingFile(file);
+
+    if (!existing) {
+      // extract the actual file name and store in new property on file object
+      file.fileName = file.name.slice(file.name.lastIndexOf("/") + 1, file.name.lastIndexOf(".")).toLowerCase();
+
+      // insert file to _files list at specific index based on alphabetical order of file name
+      _files.splice(_.sortedIndex(_files, file, "fileName"), 0, file);
+    }
+  }
+
+  /*
+   *  Public Methods
+   */
+  function init() {
+    var storage = document.getElementById("videoStorage");
+
+    if (!storage) {
+      return;
+    }
+
+    storage.addEventListener("rise-storage-response", function(e) {
+      var file = e.detail;
+
+      // Added
+      if(file.added) {
+        _addFile(file);
+
+        if (_initialLoad) {
+          _initialLoad = false;
+          RiseVision.Video.onFileInit(_getUrls());
+
+          return;
+        }
+      }
+
+      // Changed
+      if(file.changed) {
+        _changeFile(file);
+      }
+
+      // Deleted
+      if(file.deleted) {
+        _deleteFile(file);
+      }
+
+      RiseVision.Video.onFileRefresh(_getUrls());
+
+    });
+
+    storage.addEventListener("rise-storage-empty-folder", function () {
+      var params = { "event": "storage folder empty" };
+
+      RiseVision.Video.logEvent(params, true);
+      RiseVision.Video.showError("The selected folder does not contain any videos.");
+    });
+
+    storage.addEventListener("rise-storage-no-folder", function () {
+      var params = { "event": "storage folder doesn't exist" };
+
+      RiseVision.Video.logEvent(params, true);
+      RiseVision.Video.showError("The selected folder does not exist.");
+    });
+
+    storage.addEventListener("rise-storage-error", function() {
+      var params = { "event": "storage error" };
+
+      RiseVision.Video.logEvent(params, true);
+      RiseVision.Video.showError("Sorry, there was a problem playing the video from Storage.");
+    });
+
+    storage.setAttribute("fileType", "video");
+    storage.setAttribute("companyId", data.storage.companyId);
+    storage.setAttribute("folder", data.storage.folder);
+    storage.setAttribute("env", config.STORAGE_ENV);
+
     storage.go();
   }
 
@@ -965,6 +1133,32 @@ RiseVision.Common.Message = function (mainContainer, messageContainer) {
     return false;
   };
 
+  function configure(names, values) {
+    var additionalParams, mode;
+
+    if (Array.isArray(names) && names.length > 0 && names[0] === "additionalParams") {
+      if (Array.isArray(values) && values.length > 0) {
+        additionalParams = JSON.parse(values[0]);
+
+        if (Object.keys(additionalParams.storage).length !== 0) {
+          // storage file or folder selected
+          if (!additionalParams.storage.fileName) {
+            // folder was selected
+            mode = "folder";
+          } else {
+            // file was selected
+            mode = "file";
+          }
+        } else {
+          // non-storage file was selected
+          mode = "file";
+        }
+
+        RiseVision.Video.setAdditionalParams(additionalParams, mode);
+      }
+    }
+  }
+
   function play() {
     RiseVision.Video.play();
   }
@@ -985,7 +1179,7 @@ RiseVision.Common.Message = function (mainContainer, messageContainer) {
       gadgets.rpc.register("rscmd_pause_" + id, pause);
       gadgets.rpc.register("rscmd_stop_" + id, stop);
 
-      gadgets.rpc.register("rsparam_set_" + id, RiseVision.Video.setAdditionalParams);
+      gadgets.rpc.register("rsparam_set_" + id, configure);
       gadgets.rpc.call("", "rsparam_get", null, id, ["additionalParams"]);
     }
   }

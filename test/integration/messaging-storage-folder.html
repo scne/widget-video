@@ -24,7 +24,7 @@
 
 <div id="messageContainer"></div>
 
-<script src="../data/storage.js"></script>
+<script src="../data/storage-folder.js"></script>
 
 <script src="../../node_modules/widget-tester/mocks/gadget-mocks.js"></script>
 <script src="../../node_modules/widget-tester/mocks/logger-mock.js"></script>
@@ -32,7 +32,7 @@
 <script src="../../src/components/widget-common/dist/config.js"></script>
 <script src="../../src/config/test.js"></script>
 <script src="../../src/widget/video.js"></script>
-<script src="../../src/widget/storage.js"></script>
+<script src="../../src/widget/storage-folder.js"></script>
 <script src="../../src/components/widget-common/dist/video.js"></script>
 <script src="../../src/components/widget-common/dist/message.js"></script>
 <script src="../mocks/FrameController.js"></script>
@@ -53,29 +53,29 @@
       });
     });
 
-    suite("no video", function () {
+    suite("empty folder", function () {
       suiteSetup(function() {
-        storage.dispatchEvent(new CustomEvent("rise-storage-no-file", {
+        storage.dispatchEvent(new CustomEvent("rise-storage-empty-folder", {
           "detail": null,
           "bubbles": true
         }));
       });
 
       test("should show the no video message", function() {
-        assert.equal(document.querySelector(".message").innerHTML, "The selected video does not exist or has been moved to Trash.", "message is correct");
+        assert.equal(document.querySelector(".message").innerHTML, "The selected folder does not contain any videos.", "message is correct");
       });
     });
 
-    suite("video file throttled or no storage subscription", function () {
+    suite("no folder", function () {
       suiteSetup(function() {
-        storage.dispatchEvent(new CustomEvent("rise-storage-file-throttled", {
+        storage.dispatchEvent(new CustomEvent("rise-storage-no-folder", {
           "detail": null,
           "bubbles": true
         }));
       });
 
-      test("should show the file unavailable message", function() {
-        assert.equal(document.querySelector(".message").innerHTML, "The selected video is temporarily unavailable.", "message is correct");
+      test("should show no folder message", function() {
+        assert.equal(document.querySelector(".message").innerHTML, "The selected folder does not exist.", "message is correct");
       });
     });
 

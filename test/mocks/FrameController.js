@@ -24,7 +24,8 @@
           return {
             play: function () {},
             pause: function () {},
-            remove: function () {}
+            remove: function () {},
+            getPlaybackData: function () {}
           };
         }
 

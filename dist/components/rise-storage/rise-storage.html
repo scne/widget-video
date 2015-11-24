@@ -235,6 +235,24 @@
     _totalFilesBefore: 0,
 
     /**
+     * The list of items in a folder to request from Rise Cache.
+     *
+     * @property _folderFilesToRequest
+     * @type object
+     * @default []
+     */
+    _folderFilesToRequest: [],
+
+    /**
+     * The number of items in a folder that have been successfully requested from Rise Cache.
+     *
+     * @property _folderFilesToRequest
+     * @type object
+     * @default []
+     */
+    _folderFilesRequested: 0,
+
+    /**
      * Whether or not any of the files in a folder have changed.
      *
      * @property _isChanged
@@ -631,12 +649,12 @@
     },
 
     /**
-     * Make requests to Rise Cache to retrieve all files in a folder.
+     * Configures items to request to Rise Cache for retrieving all files in a folder.
      */
     _getFilesFromCache: function(resp) {
-
-      this._cacheRequestMethod = "HEAD";
-      this._hasAttemptedGetRequest = false;
+      // reset folder files to request list/count
+      this._folderFilesToRequest = [];
+      this._folderFilesRequested = 0;
 
       var self = this;
 
@@ -661,12 +679,28 @@
               return;
             }
 
-            self._setFileUrl(item);
-            self._cacheUrl = self._baseCacheUrl + "cb=" + new Date().getTime() + "?url=" + self._fileUrl;
-            self.$.cache.generateRequest();
+            // Add to list of folder files to request
+            self._folderFilesToRequest.push(item);
           }
         });
+
+        if (this._folderFilesToRequest.length > 0) {
+          // request the first folder file in the list
+          this._requestCacheFolderFile(this._folderFilesToRequest[0]);
+        }
       }
+    },
+
+    /**
+     * Makes a request to Rise Cache to retrieve a file from a folder.
+     */
+    _requestCacheFolderFile: function (item) {
+      this._cacheRequestMethod = "HEAD";
+      this._hasAttemptedGetRequest = false;
+
+      this._setFileUrl(item);
+      this._cacheUrl = this._baseCacheUrl + "cb=" + new Date().getTime() + "?url=" + this._fileUrl;
+      this.$.cache.generateRequest();
     },
 
     /**
@@ -677,6 +711,13 @@
         this._handleCacheFile(resp);
       }
       else {
+        this._folderFilesRequested += 1;
+
+        if (this._folderFilesToRequest.length > this._folderFilesRequested) {
+          // request the next folder file in the list
+          this._requestCacheFolderFile(this._folderFilesToRequest[this._folderFilesRequested]);
+        }
+
         this._handleCacheFolder(resp);
       }
     },
@@ -1213,6 +1254,8 @@
       this._isChanged = false;
       this._cacheRequestMethod = "HEAD";
       this._hasAttemptedGetRequest = false;
+      this._folderFilesToRequest = [];
+      this._folderFilesRequested = 0;
     }
   });
 </script>
