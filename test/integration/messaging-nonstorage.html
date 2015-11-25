@@ -109,6 +109,52 @@
         RiseVision.Video.play.restore();
       });
     });
+
+    suite("non-storage error message", function() {
+      var nonStorage = new RiseVision.Video.NonStorage({ "url": "http://www.test.com/test.jpg" }),
+        riseCache = RiseVision.Common.RiseCache,
+        xhr, clock, requests;
+
+      suiteSetup(function() {
+        xhr = sinon.useFakeXMLHttpRequest();
+        clock = sinon.useFakeTimers();
+
+        xhr.onCreate = function (xhr) {
+          requests.push(xhr);
+        };
+      });
+
+      suiteTeardown(function() {
+        xhr.restore();
+      });
+
+      setup(function() {
+        requests = [];
+
+        riseCache.ping(function(){});
+        requests[0].respond(200);
+
+        nonStorage.init();
+        requests[1].respond(0);
+      });
+
+      test("should show non-storage error message", function() {
+        assert.equal(document.querySelector(".message").innerHTML, "The selected video does not exist or has been moved to Trash.", "message text");
+        assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
+      });
+
+      test("should call play function 5 seconds after a non-storage error", function() {
+        var spy = sinon.spy(RiseVision.Video, "play");
+
+        clock.tick(4500);
+        assert(spy.notCalled);
+        clock.tick(500);
+        assert(spy.calledOnce);
+
+        clock.restore();
+        RiseVision.Video.play.restore();
+      });
+    });
   });
 </script>
 </body>

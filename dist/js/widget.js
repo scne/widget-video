@@ -285,10 +285,10 @@ RiseVision.Common.RiseCache = (function () {
 
         xhr.open("GET", url, true);
 
-        xhr.addEventListener('loadend', function () {
+        xhr.addEventListener("loadend", function () {
           var status = xhr.status || 0;
 
-          if (status === 0 || (status >= 200 && status < 300)) {
+          if (status >= 200 && status < 300) {
             callback(request);
           } else {
             callback(request, new Error("The request failed with status code: " + status));
@@ -929,7 +929,7 @@ RiseVision.Video.NonStorage = function (data) {
   var _isLoading = true;
 
   function _getFile(omitCacheBuster) {
-    riseCache.getFile(data.url, function (response, error) {
+    riseCache.getFile(data.url, function(response, error) {
       if (!error) {
 
         if (_isLoading) {
@@ -950,7 +950,9 @@ RiseVision.Video.NonStorage = function (data) {
           "event": "non-storage error",
           "event_details": error.message,
           "url": response.url
-        });
+        }, true);
+
+        RiseVision.Video.showError("The selected video does not exist or has been moved to Trash.");
       }
     }, omitCacheBuster);
   }
