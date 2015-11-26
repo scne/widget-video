@@ -112,9 +112,15 @@
      */
 
     /**
-     * Fired when an error is received.
+     * Fired when an error is received from the storage.
      *
      * @event rise-storage-error
+     */
+
+    /**
+     * Fired when an error is received from cache.
+     *
+     * @event rise-cache-error
      */
 
     /**
@@ -387,10 +393,10 @@
         }
         else if (this._noFolderExists(resp.response)) {
           if (this.filename) {
-            this.fire("rise-storage-no-file");
+            this.fire("rise-storage-no-file", this.folder+"/"+this.filename);
           }
           else {
-            this.fire("rise-storage-no-folder");
+            this.fire("rise-storage-no-folder", this.folder);
           }
         }
         else {
@@ -875,7 +881,7 @@
       }
       else {
         this._startTimer();
-        this.fire("rise-storage-error", resp);
+        this.fire("rise-cache-error", resp);
       }
     },
 
@@ -952,24 +958,7 @@
         this.refresh = (this.refresh < 5) ? 5 : this.refresh;
 
         this.debounce("refresh", function() {
-          // File
-          if (this._isFile) {
-            if (this._isCacheRunning) {
-              if (this._fileThrottled) {
-                this._loadStorage();
-              }
-              else {
-                this._getFileFromCache();
-              }
-            }
-            else {
-              this._loadStorage();
-            }
-          }
-          // Folder
-          else {
-            this._loadStorage();
-          }
+          this._loadStorage();
         }, this.refresh * 60000);
       }
     },
