@@ -62,6 +62,9 @@
     });
 
     suite("player error message", function() {
+      var FORMAT_MESSAGE = "There was a problem playing that video. It could be that we don't " +
+        "support that format or it is not encoded correctly.";
+
       test("should show playback error message", function() {
         RiseVision.Video.playerError();
 
@@ -69,11 +72,25 @@
         assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
       });
 
-      test("should show format error message", function() {
+      test("should show format error message when file could not be played", function() {
         RiseVision.Video.playerError({ "message": "Error loading media: File could not be played" });
 
-        assert.equal(document.querySelector(".message").innerHTML, "There was a problem playing " +
-          "that video. It could be that we don't support that format or it is not encoded correctly.", "message text");
+        assert.equal(document.querySelector(".message").innerHTML, FORMAT_MESSAGE, "message text");
+        assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
+      });
+
+      test("should show format error message when Youtube video could not be played", function() {
+        RiseVision.Video.playerError({ "message": "Error loading YouTube: Video could not be played" });
+
+        assert.equal(document.querySelector(".message").innerHTML, FORMAT_MESSAGE, "message text");
+        assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
+      });
+
+      test("should show format error message when no playable sources are found and video is a Youtube video", function() {
+        RiseVision.Video.onFileInit("https://www.youtube.com/watch?v=dbDT0hD2SBo");
+        RiseVision.Video.playerError({ "message": "Error loading player: No playable sources found" });
+
+        assert.equal(document.querySelector(".message").innerHTML, FORMAT_MESSAGE, "message text");
         assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
       });
 
