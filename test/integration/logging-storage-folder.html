@@ -177,6 +177,19 @@
         assert(spy.calledOnce);
         assert(spy.calledWith(table, params));
       });
+
+      test("should log a cache error", function() {
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+
+        storage.dispatchEvent(new CustomEvent("rise-cache-error", {
+          "detail": null,
+          "bubbles": true
+        }));
+
+        params.event = "cache error";
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
+      });
     });
 
     suite("storage folder doesn't exist", function() {
@@ -184,21 +197,26 @@
 
       test("should log a storage folder doesn't exist error", function() {
         spy = sinon.spy(RiseVision.Common.Logger, "log");
+        var filePath = window.gadget.settings.additionalParams.storage.folder;
 
         storage.dispatchEvent(new CustomEvent("rise-storage-no-folder", {
-          "detail": null,
+          "detail": filePath,
           "bubbles": true
         }));
 
+
         params.event = "storage folder doesn't exist";
+        params.event_details = filePath;
 
         assert(spy.calledOnce);
         assert(spy.calledWith(table, params));
       });
 
       test("should log a storage folder doesn't exist error when done is fired", function() {
+
+        var filePath = window.gadget.settings.additionalParams.storage.folder;
         storage.dispatchEvent(new CustomEvent("rise-storage-no-folder", {
-          "detail": null,
+          "detail": filePath,
           "bubbles": true
         }));
 
@@ -224,6 +242,7 @@
         RiseVision.Video.onFileRefresh([file]);
 
         spy = sinon.spy(RiseVision.Common.Logger, "log");
+        delete params.event_details;
         params.event = "done";
 
         clock.tick(5000);

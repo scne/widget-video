@@ -722,8 +722,8 @@ RiseVision.Video.StorageFile = function (data) {
       }
     });
 
-    storage.addEventListener("rise-storage-no-file", function() {
-      var params = { "event": "storage file not found" };
+    storage.addEventListener("rise-storage-no-file", function(e) {
+      var params = { "event": "storage file not found", "event_details": e.detail };
 
       RiseVision.Video.logEvent(params, true);
       RiseVision.Video.showError("The selected video does not exist or has been moved to Trash.");
@@ -742,6 +742,14 @@ RiseVision.Video.StorageFile = function (data) {
       RiseVision.Video.logEvent(params, true);
       RiseVision.Video.showError("Sorry, there was a problem playing the video from Storage.");
     });
+
+    storage.addEventListener("rise-cache-error", function() {
+      var params = { "event": "cache error" };
+
+      RiseVision.Video.logEvent(params, true);
+      RiseVision.Video.showError("Sorry, there was a problem playing the video from Cache.");
+    });
+
 
     storage.setAttribute("folder", data.storage.folder);
     storage.setAttribute("fileName", data.storage.fileName);
@@ -851,8 +859,8 @@ RiseVision.Video.StorageFolder = function (data) {
       RiseVision.Video.showError("The selected folder does not contain any videos.");
     });
 
-    storage.addEventListener("rise-storage-no-folder", function () {
-      var params = { "event": "storage folder doesn't exist" };
+    storage.addEventListener("rise-storage-no-folder", function (e) {
+      var params = { "event": "storage folder doesn't exist", "event_details": e.detail };
 
       RiseVision.Video.logEvent(params, true);
       RiseVision.Video.showError("The selected folder does not exist.");
@@ -863,6 +871,13 @@ RiseVision.Video.StorageFolder = function (data) {
 
       RiseVision.Video.logEvent(params, true);
       RiseVision.Video.showError("Sorry, there was a problem playing the video from Storage.");
+    });
+
+    storage.addEventListener("rise-cache-error", function() {
+      var params = { "event": "cache error" };
+
+      RiseVision.Video.logEvent(params, true);
+      RiseVision.Video.showError("Sorry, there was a problem playing the video from Cache.");
     });
 
     storage.setAttribute("fileType", "video");

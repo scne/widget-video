@@ -132,16 +132,19 @@
 
       teardown(function() {
         delete params.url;
+        delete params.event_details;
 
         RiseVision.Video.showError.restore();
         RiseVision.Video.logEvent.restore();
       });
 
       test("should handle when 'no file' error occurs", function() {
+        var filePath = window.gadget.settings.additionalParams.storage.folder + "/" + window.gadget.settings.additionalParams.storage.fileName;
         params.event = "storage file not found";
+        params.event_details = filePath;
 
         storage.dispatchEvent(new CustomEvent("rise-storage-no-file", {
-          "detail": null,
+          "detail": filePath,
           "bubbles": true
         }));
 
@@ -168,7 +171,7 @@
           "showError() called with correct message");
       });
 
-      test("should handle when a general error occurs", function() {
+      test("should handle when a storage error occurs", function() {
         params.event = "storage error";
 
         storage.dispatchEvent(new CustomEvent("rise-storage-error", {
@@ -180,6 +183,21 @@
         assert(onLogEventStub.calledWith(params, true), "logEvent() called with correct params");
         assert(onShowErrorStub.calledOnce, "showError() called once");
         assert(onShowErrorStub.calledWith("Sorry, there was a problem playing the video from Storage."),
+          "showError() called with correct message");
+      });
+
+      test("should handle when a cache error occurs", function() {
+        params.event = "cache error";
+
+        storage.dispatchEvent(new CustomEvent("rise-cache-error", {
+          "detail": null,
+          "bubbles": true
+        }));
+
+        assert(onLogEventStub.calledOnce, "logEvent() called once");
+        assert(onLogEventStub.calledWith(params, true), "logEvent() called with correct params");
+        assert(onShowErrorStub.calledOnce, "showError() called once");
+        assert(onShowErrorStub.calledWith("Sorry, there was a problem playing the video from Cache."),
           "showError() called with correct message");
       });
 
