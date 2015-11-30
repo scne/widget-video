@@ -70,12 +70,31 @@ RiseVision.Video = (function (gadgets) {
     return null;
   }
 
+  function _getCurrentFile() {
+    var fileData = null;
+
+    if (_currentFiles && _currentFiles.length > 0) {
+      if (_mode === "file") {
+        return _currentFiles[0];
+      }
+      else if (_mode === "folder") {
+        // retrieve the currently played file info from player
+        fileData = _getCurrentFileData();
+
+        if (fileData) {
+          return _currentFiles[fileData.index];
+        }
+      }
+    }
+
+    return null;
+  }
+
   // Get the parameters to pass to the event logger.
   function _getLoggerParams(params, cb) {
     var json = {},
       utils = RiseVision.Common.LoggerUtils,
-      url = null,
-      fileData = null;
+      url = null;
 
     if (params.event) {
       json.event = params.event;
@@ -89,19 +108,7 @@ RiseVision.Video = (function (gadgets) {
       url = params.url;
     }
     else {
-      if (_currentFiles && _currentFiles.length > 0) {
-        if (_mode === "file") {
-          url = _currentFiles[0];
-        }
-        else if (_mode === "folder") {
-          // retrieve the currently played file info from player
-          fileData = _getCurrentFileData();
-
-          if (fileData) {
-            url = _currentFiles[fileData.index];
-          }
-        }
-      }
+      url = _getCurrentFile();
     }
 
     json.file_url = url;
@@ -285,7 +292,13 @@ RiseVision.Video = (function (gadgets) {
   function playerError(error) {
     var details = null,
       params = {},
-      message = "Sorry, there was a problem playing the video.";
+      url = "",
+      message = "Sorry, there was a problem playing the video.",
+      MEDIA_ERROR = "Error loading media: File could not be played",
+      YOUTUBE_ERROR = "Error loading YouTube: Video could not be played",
+      PLAYER_ERROR = "Error loading player: No playable sources found",
+      FORMAT_MESSAGE = "There was a problem playing that video. It could be that we don't " +
+        "support that format or it is not encoded correctly.";
 
     _playbackError = true;
 
@@ -301,9 +314,18 @@ RiseVision.Video = (function (gadgets) {
       }
 
       // Check if there is an issue with the format.
-      if (error.message && (error.message === "Error loading media: File could not be played")) {
-        message = "There was a problem playing that video. It could be that we don't " +
-          "support that format or it is not encoded correctly.";
+      if (error.message) {
+        if ((error.message === MEDIA_ERROR) || (error.message === YOUTUBE_ERROR)) {
+          message = FORMAT_MESSAGE;
+        }
+        else if (error.message === PLAYER_ERROR) {
+          url = _getCurrentFile();
+
+          // Check if this is a Youtube video.
+          if (url && url.indexOf("www.youtube.com") > -1) {
+            message = FORMAT_MESSAGE;
+          }
+        }
       }
     }
 

@@ -147,7 +147,7 @@ var playerJW = function (setupObj) {
     jwplayer("player").setup(setupObj);
 
     jwplayer().onSetupError(function (error) {
-      instance.onSetupError(error);
+      onSetupError(error);
     });
 
     jwplayer().onReady(function () {
