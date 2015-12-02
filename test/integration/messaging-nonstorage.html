@@ -135,7 +135,8 @@
         requests[0].respond(200);
 
         nonStorage.init();
-        requests[1].respond(0);
+        requests[1].respond(0); // HEAD request
+        requests[2].respond(0); // GET request
       });
 
       test("should show non-storage error message", function() {
