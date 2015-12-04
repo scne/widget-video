@@ -28253,6 +28253,8 @@ module.run(["$templateCache", function($templateCache) {
 
           // default to false so it will set validity on parent to false initially
           scope.selectorValid = false;
+          // a flag to check if custom url is in an initial empty state
+          scope.customInit = false;
 
           scope.defaults = function(obj) {
             if (obj) {
@@ -28271,7 +28273,6 @@ module.run(["$templateCache", function($templateCache) {
 
           scope.onCustomBtnHandler = function() {
             scope.selector.selection = "custom";
-            scope.selectorValid = true;
             scope.selector.url = "";
             scope.selector.storageName = "";
           };
@@ -28304,6 +28305,11 @@ module.run(["$templateCache", function($templateCache) {
                 // validity is fine when choosing a single-folder from storage
                 scope.selectorValid = true;
               }
+              else if (selection === "custom") {
+                scope.customInit = true;
+                // set selector validity to false to account for allowing an initial empty value for url-field
+                scope.selectorValid = false;
+              }
             }
           });
 
@@ -28312,6 +28318,11 @@ module.run(["$templateCache", function($templateCache) {
               if (scope.selector.selection === "single-file" && typeof scope.fileType !== "undefined") {
                 // set validity from the single-file storage selection
                 scope.selectorValid = hasValidExtension(url, scope.fileType);
+              }
+              else if (scope.selector.selection === "custom" && scope.customInit && url !== "") {
+                // an entry was made in url-field
+                scope.customInit = false;
+                scope.selectorValid = true;
               }
             }
           });
@@ -28375,7 +28386,7 @@ module.run(["$templateCache", function($templateCache) {
     "    <url-field id=\"customUrl\" name=\"customUrl\" url=\"selector.url\"\n" +
     "               file-type=\"{{fileType}}\"\n" +
     "               hide-label=\"true\"\n" +
-    "               ng-model=\"customurlentry\" valid></url-field>\n" +
+    "               ng-model=\"customurlentry\" valid init-empty></url-field>\n" +
     "  </div>\n" +
     "</div>\n" +
     "");
