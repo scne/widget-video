@@ -3,6 +3,9 @@
 (function (console) {
   "use strict";
 
+  var bower = require("gulp-bower");
+  var colors = require("colors");
+  var del = require("del");
   var gulp = require("gulp");
   var gutil = require("gulp-util");
   var concat = require("gulp-concat");
@@ -17,9 +20,6 @@
   var factory = require("widget-tester").gulpTaskFactory;
   var sourcemaps = require("gulp-sourcemaps");
   var html2js = require("gulp-html2js");
-  var bower = require("gulp-bower");
-  var del = require("del");
-  var colors = require("colors");
   var wct = require("web-component-tester").gulp.init(gulp);
 
   var appJSFiles = [

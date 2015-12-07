@@ -12,7 +12,7 @@ RiseVision.Video.NonStorage = function (data) {
   var _isLoading = true;
 
   function _getFile(omitCacheBuster) {
-    riseCache.getFile(data.url, function (response, error) {
+    riseCache.getFile(data.url, function(response, error) {
       if (!error) {
 
         if (_isLoading) {
@@ -33,7 +33,9 @@ RiseVision.Video.NonStorage = function (data) {
           "event": "non-storage error",
           "event_details": error.message,
           "url": response.url
-        });
+        }, true);
+
+        RiseVision.Video.showError("The selected video does not exist or has been moved to Trash.");
       }
     }, omitCacheBuster);
   }
