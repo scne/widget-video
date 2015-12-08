@@ -5,12 +5,7 @@
   window.gadget.settings = {
     "params": {},
     "additionalParams": {
-      "url": "",
-      "selector": {
-        "selection": "custom",
-        "storageName": "",
-        "url": "http://s3.amazonaws.com/stu-testing/sample_videos/big-buck-bunny_trailer.webm"
-      },
+      "url": "http://s3.amazonaws.com/stu-testing/sample_videos/big-buck-bunny_trailer.webm",
       "storage": {},
       "video": {
         "scaleToFit": false,

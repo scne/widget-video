@@ -51,7 +51,18 @@
         "file_format": null,
         "company_id": '"companyId"',
         "display_id": '"displayId"'
-      };
+      }, paramsStub, configLogCall;
+
+    paramsStub = sinon.stub(RiseVision.Video, "setAdditionalParams", function (params, mode) {
+      // spy on log call
+      spy = sinon.spy(RiseVision.Common.Logger, "log");
+      // restore the function
+      paramsStub.restore();
+      // call it again with the params
+      RiseVision.Video.setAdditionalParams(params, mode);
+      // capture the configuration log args
+      configLogCall = RiseVision.Common.Logger.log.getCall(0);
+    });
 
     sinon.stub(storage.$.ping, "generateRequest", function () {
       storage._handlePingError();
@@ -69,6 +80,23 @@
 
     teardown(function() {
       RiseVision.Common.Logger.log.restore();
+    });
+
+    suite("configuration", function () {
+
+      test("should log the configuration event", function () {
+
+        assert.equal(configLogCall.args[0], table);
+        assert.deepEqual(configLogCall.args[1], {
+          "event": "configuration",
+          "event_details": "storage",
+          "file_url": params.file_url,
+          "file_format": params.file_format,
+          "company_id": params.company_id,
+          "display_id": params.display_id
+        });
+
+      });
     });
 
     suite("storage folder empty", function() {

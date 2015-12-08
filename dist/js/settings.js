@@ -27780,26 +27780,11 @@ angular.module('ui.bootstrap-slider', [])
       return {
         restrict: "E",
         scope: {
-          help: "@",
-          contribute: "@",
           save: "&",
           cancel: "&",
           disableSave: "&"
         },
-        template: $templateCache.get("_angular/widget-button-toolbar/widget-button-toolbar.html"),
-        link: function ($scope, elem, attrs) {
-          $scope.helpRef = "";
-          $scope.contributeRef = "";
-
-          if (typeof attrs.help !== "undefined" && attrs.help !== "") {
-            $scope.helpRef = attrs.help;
-          }
-
-          if (typeof attrs.contribute !== "undefined" && attrs.contribute !== "") {
-            $scope.contributeRef = attrs.contribute;
-          }
-
-        }
+        template: $templateCache.get("_angular/widget-button-toolbar/widget-button-toolbar.html")
       };
     }]);
 }());
@@ -27810,23 +27795,15 @@ catch(err) { module = angular.module("risevision.widget.common.widget-button-too
 module.run(["$templateCache", function($templateCache) {
   "use strict";
   $templateCache.put("_angular/widget-button-toolbar/widget-button-toolbar.html",
-    "<div class=\"btn-toolbar sticky-buttons\">\n" +
+    "<div class=\"pull-right\">\n" +
     "  <button id=\"save\" class=\"btn btn-primary btn-fixed-width\" type=\"button\" ng-click=\"save()\" ng-disabled=\"disableSave()\">\n" +
     "    <span>{{\"common.save\" | translate}}</span>\n" +
-    "    <i class=\"fa fa-white fa-check fa-lg icon-right\"></i>\n" +
+    "    <i class=\"fa fa-white fa-check icon-right\"></i>\n" +
     "  </button>\n" +
     "  <button id=\"cancel\" class=\"btn btn-default btn-fixed-width\" type=\"button\" ng-click=\"cancel()\">\n" +
     "    <span>{{\"common.cancel\" | translate}}</span>\n" +
-    "    <i class=\"fa fa-white fa-times fa-lg icon-right\"></i>\n" +
+    "    <i class=\"fa fa-white fa-times icon-right\"></i>\n" +
     "  </button>\n" +
-    "  <a type=\"button\" class=\"btn btn-rv-help btn-fixed-width\" target=\"_blank\" href={{helpRef}} ng-if=\"helpRef !== ''\">\n" +
-    "    <span>{{\"common.help\" | translate}}</span>\n" +
-    "    <i class=\"fa fa-question-circle fa-lg icon-right\"></i>\n" +
-    "  </a>\n" +
-    "  <a type=\"button\" class=\"btn btn-rv-help btn-fixed-width\" target=\"_blank\" href={{contributeRef}} ng-if=\"contributeRef !== ''\">\n" +
-    "    <span>{{\"common.contribute\" | translate}}</span>\n" +
-    "    <i class=\"fa fa-github fa-lg icon-right\"></i>\n" +
-    "  </a>\n" +
     "</div>\n" +
     "");
 }]);
@@ -27867,7 +27844,9 @@ if (typeof angular !== "undefined") {
         restrict: "EA",
         scope : {
           companyId : "@",
-          type: "@"
+          type: "@",
+          label: "@",
+          selected: "="
         },
         template: $templateCache.get("storage-selector.html"),
         link: function (scope) {
@@ -27888,7 +27867,7 @@ if (typeof angular !== "undefined") {
             scope.modalInstance = $modal.open({
               templateUrl: "storage.html",
               controller: "StorageCtrl",
-              size: "lg",
+              size: "md",
               backdrop: true,
               resolve: {
                 storageUrl: function () {
@@ -27901,8 +27880,8 @@ if (typeof angular !== "undefined") {
               // for unit test purposes
               scope.files = files;
 
-              // emit an event with name "files", passing the array of files selected from storage
-              scope.$emit("picked", files);
+              // emit an event with name "files", passing the array of files selected from storage and the selector type
+              scope.$emit("picked", files, scope.type);
 
             }, function () {
               // for unit test purposes
@@ -27965,12 +27944,15 @@ angular.module("risevision.widget.common.storage-selector")
   }]);
 
 (function(module) {
-try { app = angular.module("risevision.widget.common.storage-selector"); }
-catch(err) { app = angular.module("risevision.widget.common.storage-selector", []); }
-app.run(["$templateCache", function($templateCache) {
+try { module = angular.module("risevision.widget.common.storage-selector"); }
+catch(err) { module = angular.module("risevision.widget.common.storage-selector", []); }
+module.run(["$templateCache", function($templateCache) {
   "use strict";
   $templateCache.put("storage-selector.html",
-    "<button class=\"btn btn-widget-icon-storage\" ng-click=\"open()\" type=\"button\" />\n" +
+    "<button class=\"btn btn-default\" ng-class=\"{active: selected}\" ng-click=\"open()\" type=\"button\" >\n" +
+    "  {{ label }}<img src=\"http://s3.amazonaws.com/Rise-Images/Icons/storage.png\" class=\"storage-selector-icon\" ng-class=\"{'icon-right': label}\">\n" +
+    "</button>\n" +
+    "\n" +
     "<script type=\"text/ng-template\" id=\"storage.html\">\n" +
     "        <iframe class=\"modal-dialog\" scrolling=\"no\" marginwidth=\"0\" src=\"{{ storageUrl.url }}\"></iframe>\n" +
     "</script>\n" +
@@ -27983,8 +27965,7 @@ app.run(["$templateCache", function($templateCache) {
 
   angular.module("risevision.widget.common.url-field", [
     "risevision.common.i18n",
-    "risevision.widget.common.tooltip",
-    "risevision.widget.common.storage-selector"
+    "risevision.widget.common.tooltip"
   ])
     .directive("urlField", ["$templateCache", "$log", function ($templateCache, $log) {
       return {
@@ -27993,10 +27974,7 @@ app.run(["$templateCache", function($templateCache) {
         scope: {
           url: "=",
           hideLabel: "@",
-          hideStorage: "@",
-          companyId: "@",
-          fileType: "@",
-          storageType: "@"
+          fileType: "@"
         },
         template: $templateCache.get("_angular/url-field/url-field.html"),
         link: function (scope, element, attrs, ctrl) {
@@ -28071,17 +28049,12 @@ app.run(["$templateCache", function($templateCache) {
 
           scope.allowInitEmpty = (typeof attrs.initEmpty !== "undefined");
 
-          if (!scope.hideStorage) {
-            scope.$on("picked", function (event, data) {
-              scope.url = data[0];
-            });
-          }
-
           scope.blur = function() {
             scope.$emit("urlFieldBlur");
           };
 
           scope.$watch("url", function (url) {
+
             if (typeof url !== "undefined" && url !== null) {
 
               if (url !== "" && scope.allowInitEmpty) {
@@ -28130,9 +28103,8 @@ module.run(["$templateCache", function($templateCache) {
   $templateCache.put("_angular/url-field/url-field.html",
     "<div class=\"form-group\" >\n" +
     "  <label ng-if=\"!hideLabel\">{{ \"url.label\" | translate }}</label>\n" +
-    "  <div ng-class=\"{'input-group':!hideStorage}\">\n" +
+    "  <div>\n" +
     "    <input name=\"url\" type=\"text\" ng-model=\"url\" ng-blur=\"blur()\" class=\"form-control\" placeholder=\"http://\">\n" +
-    "    <span class=\"input-url-addon\" ng-if=\"!hideStorage\"><storage-selector company-id=\"{{companyId}}\" type=\"{{storageType}}\"></storage-selector></span>\n" +
     "  </div>\n" +
     "  <p ng-if=\"!valid && invalidType === 'url'\" class=\"text-danger\">{{ \"url.errors.url\" | translate }}</p>\n" +
     "  <p ng-if=\"!valid && invalidType === 'image'\" class=\"text-danger\">{{ \"url.errors.image\" | translate }}</p>\n" +
@@ -28142,6 +28114,279 @@ module.run(["$templateCache", function($templateCache) {
     "      <input name=\"validate-url\" ng-click=\"doValidation = !doValidation\" type=\"checkbox\"\n" +
     "             value=\"validate-url\"> {{\"url.validate.label\" | translate}}\n" +
     "    </label>\n" +
+    "  </div>\n" +
+    "</div>\n" +
+    "");
+}]);
+})();
+
+(function () {
+  "use strict";
+
+  angular.module("risevision.widget.common.file-selector", [
+      "risevision.common.i18n",
+      "risevision.widget.common.storage-selector",
+      "risevision.widget.common.url-field"
+    ])
+    .directive("fileSelector", ["$templateCache", "$log", "$window", function ($templateCache, $log, $window) {
+      return {
+        restrict: "E",
+        require: "?ngModel",
+        scope: {
+          title: "@",
+          fileLabel: "@",
+          folderLabel: "@",
+          companyId: "@",
+          fileType: "@",
+          selector: "="
+        },
+        template: $templateCache.get("_angular/file-selector/file-selector.html"),
+        link: function (scope, element, attrs, ctrl) {
+
+          function hasValidExtension(url, fileType) {
+            var testUrl = url.toLowerCase(),
+              extensions;
+
+            switch(fileType) {
+              case "image":
+                extensions = [".jpg", ".jpeg", ".png", ".bmp", ".svg", ".gif"];
+                break;
+              case "video":
+                extensions = [".webm", ".mp4", ".ogv", ".ogg"];
+                break;
+              default:
+                extensions = [];
+            }
+
+            for (var i = 0, len = extensions.length; i < len; i++) {
+              if (testUrl.indexOf(extensions[i]) !== -1) {
+                return true;
+              }
+            }
+
+            return false;
+          }
+
+          function toggleButtons(selectedType) {
+
+            switch (selectedType) {
+              case "single-file":
+                scope.fileBtnSelected = true;
+                scope.folderBtnSelected = false;
+                scope.customBtnSelected = false;
+                break;
+              case "single-folder":
+                scope.fileBtnSelected = false;
+                scope.folderBtnSelected = true;
+                scope.customBtnSelected = false;
+                break;
+              case "custom":
+                scope.fileBtnSelected = false;
+                scope.folderBtnSelected = false;
+                scope.customBtnSelected = true;
+                break;
+              default:
+                scope.fileBtnSelected = false;
+                scope.folderBtnSelected = false;
+                scope.customBtnSelected = false;
+                break;
+            }
+
+          }
+
+          function getStorageName(url, type) {
+            var str, arr, params, pair, fileName, folder, name;
+
+            if (type === "single-file") {
+              // example single storage file url
+              // https://storage.googleapis.com/risemedialibrary-abc123/test%2Fvideos%2Ftest.webm
+
+              // get the second part of the split
+              str = url.split("storage.googleapis.com/risemedialibrary-")[1];
+              // extract everything starting after the company id
+              str = decodeURIComponent(str.slice(str.indexOf("/") + 1));
+              // split up based on folder separator
+              arr = str.split("/");
+
+              // assign the last index of array split as the file name
+              fileName = arr.pop();
+              // join the remaining array to form the folder name/path
+              folder = arr.length > 0 ? arr.join("/") : "";
+
+              if (folder !== "") {
+                // add ending "/" to the folder path
+                folder += "/";
+              }
+
+              name = folder + fileName;
+            }
+            else if (type === "single-folder") {
+              // example single storage folder url
+              // https://www.googleapis.com/storage/v1/b/risemedialibrary-abc123/o?prefix=test%2Fvideos%2F
+
+              // everything after "?" will involve the folder name/path
+              params = url.split("?");
+
+              for (var i = 0; i < params.length; i++) {
+                // "prefix" will be the param name and the folder name/path will be the value
+                pair = params[i].split("=");
+
+                if (pair[0] === "prefix" && typeof pair[1] !== "undefined" && pair[1] !== "") {
+                  name = decodeURIComponent(pair[1]);
+                  break;
+                }
+              }
+
+            }
+
+            return name;
+          }
+
+          scope.defaultSetting = {
+            selection: "", // "single-file", "single-folder", or "custom"
+            storageName: "", // name of file or folder path
+            url: ""
+          };
+
+          // set default button states
+          toggleButtons();
+
+          // default to false so it will set validity on parent to false initially
+          scope.selectorValid = false;
+          // a flag to check if custom url is in an initial empty state
+          scope.customInit = false;
+
+          scope.defaults = function(obj) {
+            if (obj) {
+              for (var i = 1, length = arguments.length; i < length; i++) {
+                var source = arguments[i];
+
+                for (var prop in source) {
+                  if (obj[prop] === void 0) {
+                    obj[prop] = source[prop];
+                  }
+                }
+              }
+            }
+            return obj;
+          };
+
+          scope.onCustomBtnHandler = function() {
+            scope.selector.selection = "custom";
+            scope.selector.url = "";
+            scope.selector.storageName = "";
+          };
+
+          scope.previewFile = function () {
+            $window.open(scope.selector.url, "_blank");
+          };
+
+          scope.$on("picked", function (event, data, type) {
+            scope.selector.selection = type;
+            scope.selector.storageName = getStorageName(data[0], scope.selector.selection);
+            scope.selector.url = data[0];
+          });
+
+          scope.$watch("selectorValid", function (valid) {
+            if (ctrl) {
+              ctrl.$setValidity("selectorValid", valid);
+            }
+          });
+
+          scope.$watch("selector", function(selector) {
+            scope.defaults(selector, scope.defaultSetting);
+          });
+
+          scope.$watch("selector.selection", function (selection) {
+            if (typeof selection !== "undefined") {
+              toggleButtons(selection);
+
+              if (selection === "single-folder") {
+                // validity is fine when choosing a single-folder from storage
+                scope.selectorValid = true;
+              }
+              else if (selection === "custom") {
+                scope.customInit = true;
+                // set selector validity to false to account for allowing an initial empty value for url-field
+                scope.selectorValid = false;
+              }
+            }
+          });
+
+          scope.$watch("selector.url", function (url) {
+            if (typeof url !== "undefined" && url !== null) {
+              if (scope.selector.selection === "single-file" && typeof scope.fileType !== "undefined") {
+                // set validity from the single-file storage selection
+                scope.selectorValid = hasValidExtension(url, scope.fileType);
+              }
+              else if (scope.selector.selection === "custom" && scope.customInit && url !== "") {
+                // an entry was made in url-field
+                scope.customInit = false;
+                scope.selectorValid = true;
+              }
+            }
+          });
+
+        }
+      };
+    }]);
+}());
+
+(function(module) {
+try { module = angular.module("risevision.widget.common.file-selector"); }
+catch(err) { module = angular.module("risevision.widget.common.file-selector", []); }
+module.run(["$templateCache", function($templateCache) {
+  "use strict";
+  $templateCache.put("_angular/file-selector/file-selector.html",
+    "<div class=\"form-group\">\n" +
+    "  <label ng-if=\"title\" class=\"control-label remove-bottom\">{{ title }}</label>\n" +
+    "\n" +
+    "  <div class=\"row half-top half-bottom\">\n" +
+    "    <div class=\"col-md-12\">\n" +
+    "      <!-- Storage Single File - Button -->\n" +
+    "      <storage-selector selected=\"fileBtnSelected\"\n" +
+    "                        company-id=\"{{companyId}}\"\n" +
+    "                        type=\"single-file\"\n" +
+    "                        label=\"{{ fileLabel }}\"></storage-selector>\n" +
+    "      <!-- Storage Single Folder - Button -->\n" +
+    "      <storage-selector ng-if=\"folderLabel\"\n" +
+    "                        selected=\"folderBtnSelected\"\n" +
+    "                        company-id=\"{{companyId}}\"\n" +
+    "                        type=\"single-folder\"\n" +
+    "                        label=\"{{ folderLabel }}\"></storage-selector>\n" +
+    "      <!-- Custom File - Button -->\n" +
+    "      <button name=\"customBtn\" type=\"button\" class=\"btn btn-default\"\n" +
+    "              ng-class=\"{active: customBtnSelected}\"\n" +
+    "              ng-click=\"onCustomBtnHandler()\">{{ 'file-selector.buttons.custom' | translate }}\n" +
+    "        <i class=\"fa fa-link fa-large\"></i></button>\n" +
+    "    </div>\n" +
+    "  </div>\n" +
+    "\n" +
+    "  <!-- Storage Single File - Input -->\n" +
+    "  <div class=\"form-group\" ng-if=\"selector.selection === 'single-file'\">\n" +
+    "    <div class=\"input-group custom-addon\">\n" +
+    "      <input name=\"storage-file-name\" type=\"text\" class=\"form-control\" ng-model=\"selector.storageName\" readonly>\n" +
+    "      <span class=\"input-group-addon\">\n" +
+    "        <button name=\"previewBtn\" class=\"btn btn-default\" ng-click=\"previewFile()\">{{ 'file-selector.buttons.preview' | translate }}\n" +
+    "          <img src=\"http://s3.amazonaws.com/Rise-Images/Icons/newtab-icon.png\" class=\"storage-selector-icon icon-right\">\n" +
+    "        </button>\n" +
+    "      </span>\n" +
+    "    </div>\n" +
+    "    <p ng-if=\"!selectorValid && fileType === 'image'\" class=\"text-danger\">{{ \"file-selector.errors.storage.image\" | translate }}</p>\n" +
+    "    <p ng-if=\"!selectorValid && fileType === 'video'\" class=\"text-danger\">{{ \"file-selector.errors.storage.video\" | translate }}</p>\n" +
+    "  </div>\n" +
+    "\n" +
+    "  <!-- Storage Single Folder - Input -->\n" +
+    "  <div ng-if=\"selector.selection === 'single-folder'\">\n" +
+    "    <input name=\"storage-folder-name\" type=\"text\" class=\"form-control\" ng-model=\"selector.storageName\" readonly>\n" +
+    "  </div>\n" +
+    "\n" +
+    "  <!-- Custom File - Input -->\n" +
+    "  <div ng-if=\"selector.selection === 'custom'\">\n" +
+    "    <url-field id=\"customUrl\" name=\"customUrl\" url=\"selector.url\"\n" +
+    "               file-type=\"{{fileType}}\"\n" +
+    "               hide-label=\"true\"\n" +
+    "               ng-model=\"customurlentry\" valid init-empty></url-field>\n" +
     "  </div>\n" +
     "</div>\n" +
     "");
@@ -28168,7 +28413,7 @@ angular.module("risevision.widget.video.settings", [
   "risevision.widget.common",
   "risevision.widget.common.widget-button-toolbar",
   "risevision.widget.common.tooltip",
-  "risevision.widget.common.url-field",
+  "risevision.widget.common.file-selector",
   "ui.bootstrap-slider"
 ]);
 
@@ -28560,13 +28805,39 @@ angular.module("risevision.widget.video.settings")
   .controller("videoSettingsController", ["$scope", "$log", "commonSettings",
     function ($scope, $log, commonSettings) {
 
+      // handle pre-merge use of "url" from previous Settings
       $scope.$watch("settings.additionalParams.url", function (url) {
+        var storage = {};
+
         if (typeof url !== "undefined" && url !== "") {
-          if ($scope.settingsForm.videoUrl.$valid) {
-            $scope.settings.additionalParams.storage = commonSettings.getStorageUrlData(url);
-          } else {
-            $scope.settings.additionalParams.storage = {};
+
+          storage = commonSettings.getStorageUrlData(url);
+
+          if (Object.keys(storage).length !== 0) {
+            // is a storage single file
+            $scope.settings.additionalParams.selector = {
+              "selection": "single-file",
+              "storageName": storage.folder + storage.fileName,
+              "url": url
+            };
           }
+          else {
+            // is a custom 3rd party server file
+            $scope.settings.additionalParams.selector = {
+              "selection": "custom",
+              "storageName": "",
+              "url": url
+            };
+          }
+
+          // ensure this value is empty so it no longer gets used
+          $scope.settings.additionalParams.url = "";
+        }
+      });
+
+      $scope.$watch("settings.additionalParams.selector.url", function (url) {
+        if (typeof url !== "undefined" && url !== "") {
+          $scope.settings.additionalParams.storage = commonSettings.getStorageUrlData(url);
         }
       });
 
@@ -28574,13 +28845,15 @@ angular.module("risevision.widget.video.settings")
   .value("defaultSettings", {
     params: {},
     additionalParams: {
-      url: "",
+      url: "", // pre-merge
+      selector: {},
       storage: {},
       video: {
         scaleToFit: true,
         volume: 50,
         controls: true,
-        autoplay: true
+        autoplay: true,
+        pause: 5 // merged from folder
       }
     }
   });

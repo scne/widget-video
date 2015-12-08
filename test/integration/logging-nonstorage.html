@@ -47,15 +47,20 @@
         "company_id": '"companyId"',
         "display_id": '"displayId"'
       },
-      paramsStub;
+      paramsStub, configLogCall;
 
-    paramsStub = sinon.stub(RiseVision.Video, "setAdditionalParams", function (names, values) {
+    paramsStub = sinon.stub(RiseVision.Video, "setAdditionalParams", function (params, mode) {
       // need to enforce the fake timer clock before any of the code within setAdditionalParams is executed
       clock = sinon.useFakeTimers();
+
+      // spy on log call
+      spy = sinon.spy(RiseVision.Common.Logger, "log");
       // restore the function
       paramsStub.restore();
       // call it again with the params
-      RiseVision.Video.setAdditionalParams(names, values);
+      RiseVision.Video.setAdditionalParams(params, mode);
+      // capture the configuration log args
+      configLogCall = RiseVision.Common.Logger.log.getCall(0);
     });
 
     setup(function() {
@@ -64,6 +69,27 @@
 
     teardown(function() {
       clock.restore();
+    });
+
+    suite("configuration", function () {
+
+      teardown(function() {
+        RiseVision.Common.Logger.log.restore();
+      });
+
+      test("should log the configuration event", function () {
+
+        assert.equal(configLogCall.args[0], table);
+        assert.deepEqual(configLogCall.args[1], {
+          "event": "configuration",
+          "event_details": "custom",
+          "file_url": null,
+          "file_format": null,
+          "company_id": params.company_id,
+          "display_id": params.display_id
+        });
+
+      });
     });
 
     suite("play", function() {

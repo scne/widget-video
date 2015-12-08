@@ -3,6 +3,6 @@ angular.module("risevision.widget.video.settings", [
   "risevision.widget.common",
   "risevision.widget.common.widget-button-toolbar",
   "risevision.widget.common.tooltip",
-  "risevision.widget.common.url-field",
+  "risevision.widget.common.file-selector",
   "ui.bootstrap-slider"
 ]);
