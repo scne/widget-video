@@ -39,14 +39,15 @@
     "rv-common-i18n": "https://github.com/Rise-Vision/common-i18n.git",
     "rv-common-style": "https://github.com/Rise-Vision/common-style.git#1.3.39",
     "rise-storage": "https://github.com/Rise-Vision/web-component-rise-storage.git#1.2.6",
-    "widget-common": "https://github.com/Rise-Vision/widget-common.git#0.4.0",
+    "widget-common": "https://github.com/Rise-Vision/widget-common.git#fix/cross-domain",
     "widget-settings-ui-components": "https://github.com/Rise-Vision/widget-settings-ui-components.git#1.2.1",
     "widget-settings-ui-core": "https://github.com/Rise-Vision/widget-settings-ui-core.git#0.1.11"
   },
   "resolutions": {
     "angular": "~1.3.0",
     "angular-mocks": "~1.3.0",
+    "jquery": "~2.1.1",
     "angular-sanitize": "~1.3.0",
-    "jquery": "~2.1.1"
+    "widget-common": "fix/cross-domain"
   }
 }

@@ -55,6 +55,36 @@ RiseVision.Common.LoggerUtils = (function(gadgets) {
     }
   }
 
+  /* Retrieve parameters to pass to the event logger. */
+  function getEventParams(params, cb) {
+    var json = null;
+
+    // event is required.
+    if (params.event) {
+      json = {};
+      json.event = params.event;
+
+      if (params.event_details) {
+        json.event_details = params.event_details;
+      }
+
+      if (params.file_url) {
+        json.file_url = params.file_url;
+        json.file_format = getFileFormat(params.file_url);
+      }
+
+      getIds(function(companyId, displayId) {
+        json.company_id = companyId;
+        json.display_id = displayId;
+
+        cb(json);
+      });
+    }
+    else {
+      cb(json);
+    }
+  }
+
   /*
    *  Public Methods
    */
@@ -126,11 +156,20 @@ RiseVision.Common.LoggerUtils = (function(gadgets) {
     return name + year + month + day;
   }
 
+  function logEvent(table, params) {
+    getEventParams(params, function(json) {
+      if (json !== null) {
+        RiseVision.Common.Logger.log(table, json);
+      }
+    });
+  }
+
   return {
     "getIds": getIds,
     "getInsertData": getInsertData,
     "getFileFormat": getFileFormat,
-    "getTable": getTable
+    "getTable": getTable,
+    "logEvent": logEvent
   };
 })(gadgets);
 
@@ -177,7 +216,8 @@ RiseVision.Common.Logger = (function(utils) {
    *  Public Methods
    */
   function log(tableName, params) {
-    if (!tableName || !params || !params.event || isThrottled(params.event)) {
+    if (!tableName || !params || (params.hasOwnProperty("event") && !params.event) ||
+      (params.hasOwnProperty("event") && isThrottled(params.event))) {
       return;
     }
 
@@ -269,51 +309,53 @@ RiseVision.Common.RiseCache = (function () {
     }
 
     function fileRequest(isCacheRunning) {
-      var url, str, separator;
+      var xhr = new XMLHttpRequest(),
+        url, str, separator, request;
 
       if (isCacheRunning) {
         // configure url with cachebuster or not
         url = (nocachebuster) ? BASE_CACHE_URL + "?url=" + encodeURIComponent(fileUrl) :
           BASE_CACHE_URL + "cb=" + new Date().getTime() + "?url=" + encodeURIComponent(fileUrl);
-      } else {
-        if (nocachebuster) {
-          url = fileUrl;
-        } else {
-          str = fileUrl.split("?");
-          separator = (str.length === 1) ? "?" : "&";
-          url = fileUrl + separator + "cb=" + new Date().getTime();
-        }
-      }
 
-      makeRequest("HEAD", url);
-    }
-
-    function makeRequest(method, url) {
-      var xhr = new XMLHttpRequest(),
+        // custom request object to provide in response
         request = {
           xhr: xhr,
           url: url
         };
 
-      xhr.open(method, url, true);
+        xhr.open("GET", url, true);
 
-      xhr.addEventListener("loadend", function () {
-        var status = xhr.status || 0;
+        xhr.addEventListener('loadend', function () {
+          var status = xhr.status || 0;
 
-        if (status >= 200 && status < 300) {
-          callback(request);
-        } else {
-          // Server may not support HEAD request. Fallback to a GET request.
-          if (method === "HEAD") {
-            makeRequest("GET", url);
-          }
-          else {
+          if (status === 0 || (status >= 200 && status < 300)) {
+            callback(request);
+          } else {
             callback(request, new Error("The request failed with status code: " + status));
           }
-        }
-      });
+        });
 
-      xhr.send();
+        xhr.send();
+
+      } else {
+
+        if (nocachebuster) {
+          url = fileUrl;
+        } else {
+          str = fileUrl.split("?");
+          separator = (str.length === 1) ? "?" : "&";
+
+          url = fileUrl + separator + "cb=" + new Date().getTime();
+        }
+
+        // custom request object to provide in response
+        request = {
+          xhr: null,
+          url: url
+        };
+
+        callback(request);
+      }
     }
 
     if (!_pingReceived) {

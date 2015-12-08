@@ -41,26 +41,15 @@
 
   suite("non-storage", function() {
 
-    var clock, paramsStub, xhr, requests;
+    var clock, paramsStub;
 
     paramsStub = sinon.stub(RiseVision.Video, "setAdditionalParams", function (names, values) {
-      requests = [];
-      xhr = sinon.useFakeXMLHttpRequest();
-
-      xhr.onCreate = function (xhr) {
-        requests.push(xhr);
-      };
-
       // need to set the fake timer clock before any of the code within setAdditionalParams is executed
       clock = sinon.useFakeTimers();
       // restore the function
       paramsStub.restore();
       // call it again with the params
       RiseVision.Video.setAdditionalParams(names, values);
-
-      requests[0].respond(0); // Ping request
-      requests[1].respond(200);  // HEAD request
-      xhr.restore();
     });
 
     teardown(function () {
@@ -75,6 +64,7 @@
       });
 
       test("RiseVision.Video.onFileInit should be called", function() {
+
         assert(onInitSpy.calledOnce, "onFileInit called once");
         assert.equal(onInitSpy.args[0][0], "http://s3.amazonaws.com/stu-testing/sample_videos/big-buck-bunny_trailer.webm");
       });
@@ -83,27 +73,13 @@
     suite("non-storage refresh - file updated", function() {
       var onRefreshSpy = sinon.spy(RiseVision.Video, "onFileRefresh");
 
-      suiteSetup(function() {
-        xhr = sinon.useFakeXMLHttpRequest();
-
-        xhr.onCreate = function (xhr) {
-          requests.push(xhr);
-        };
-      });
-
       suiteTeardown(function() {
-        xhr.restore();
         RiseVision.Video.onFileRefresh.restore();
-      });
-
-      setup(function() {
-        requests = [];
       });
 
       test("RiseVision.Video.onFileRefresh called when file updated", function() {
         // advance clock the refresh interval duration amount
         clock.tick(900000);
-        requests[0].respond(200);
 
         assert(onRefreshSpy.calledOnce, "onFileRefresh called once");
         assert.include(onRefreshSpy.args[0][0], "http://s3.amazonaws.com/stu-testing/sample_videos/big-buck-bunny_trailer.webm?cb=",
