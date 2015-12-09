@@ -55,6 +55,36 @@ RiseVision.Common.LoggerUtils = (function(gadgets) {
     }
   }
 
+  /* Retrieve parameters to pass to the event logger. */
+  function getEventParams(params, cb) {
+    var json = null;
+
+    // event is required.
+    if (params.event) {
+      json = {};
+      json.event = params.event;
+
+      if (params.event_details) {
+        json.event_details = params.event_details;
+      }
+
+      if (params.file_url) {
+        json.file_url = params.file_url;
+        json.file_format = getFileFormat(params.file_url);
+      }
+
+      getIds(function(companyId, displayId) {
+        json.company_id = companyId;
+        json.display_id = displayId;
+
+        cb(json);
+      });
+    }
+    else {
+      cb(json);
+    }
+  }
+
   /*
    *  Public Methods
    */
@@ -126,11 +156,20 @@ RiseVision.Common.LoggerUtils = (function(gadgets) {
     return name + year + month + day;
   }
 
+  function logEvent(table, params) {
+    getEventParams(params, function(json) {
+      if (json !== null) {
+        RiseVision.Common.Logger.log(table, json);
+      }
+    });
+  }
+
   return {
     "getIds": getIds,
     "getInsertData": getInsertData,
     "getFileFormat": getFileFormat,
-    "getTable": getTable
+    "getTable": getTable,
+    "logEvent": logEvent
   };
 })(gadgets);
 
@@ -177,7 +216,8 @@ RiseVision.Common.Logger = (function(utils) {
    *  Public Methods
    */
   function log(tableName, params) {
-    if (!tableName || !params || !params.event || isThrottled(params.event)) {
+    if (!tableName || !params || (params.hasOwnProperty("event") && !params.event) ||
+      (params.hasOwnProperty("event") && isThrottled(params.event))) {
       return;
     }
 
@@ -297,7 +337,23 @@ RiseVision.Common.RiseCache = (function () {
 
       xhr.open(method, url, true);
 
-      xhr.addEventListener("loadend", function () {
+      xhr.onerror = function () {
+        // Server may not support HEAD request. Fallback to a GET request.
+        if (method === "HEAD") {
+          makeRequest("GET", url);
+        }
+        else {
+          if (_isCacheRunning) {
+            callback(request, new Error("The request failed with no status"));
+          } else{
+            // This is to avoid throwing an error when there is a cross domain issue
+            callback(request);
+          }
+        }
+      };
+
+      xhr.onload = function () {
+
         var status = xhr.status || 0;
 
         if (status >= 200 && status < 300) {
@@ -310,8 +366,7 @@ RiseVision.Common.RiseCache = (function () {
           else {
             callback(request, new Error("The request failed with status code: " + status));
           }
-        }
-      });
+        }};
 
       xhr.send();
     }
