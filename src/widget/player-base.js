@@ -63,7 +63,10 @@ function play() {
 }
 
 function pause() {
-  player.pause();
+  // Only pause video if it's actually playing.
+  if (player.getState().toUpperCase() === "PLAYING") {
+    player.pause();
+  }
 }
 
 function stop() {
@@ -244,9 +247,14 @@ var playerJW = function (setupObj) {
     return jwplayer().getPosition();
   }
 
+  function getState() {
+    return jwplayer().getState();
+  }
+
   return {
     getDuration: getDuration,
     getPosition: getPosition,
+    getState: getState,
     loadVideo: loadVideo,
     play: play,
     pause: pause,
