@@ -151,32 +151,44 @@
       });
     });
 
-    suite("storage error", function() {
+    suite("rise storage error", function() {
       var spyCall;
 
-      test("should log a storage error", function() {
+      test("should log a rise storage error", function() {
         spy = sinon.spy(RiseVision.Common.Logger, "log");
 
         storage.dispatchEvent(new CustomEvent("rise-storage-error", {
-          "detail": null,
+          "detail": {
+            "error": {
+              "currentTarget": {
+                "status": 0
+              }
+            }},
           "bubbles": true
         }));
 
-        params.event = "storage error";
+        params.event = "rise storage error";
+        params.event_details = "The request failed with status code: 0";
+
         assert(spy.calledOnce);
         assert(spy.calledWith(table, params));
       });
 
-      test("should log a storage error when done is fired", function() {
+      test("should log a rise storage error when done is fired", function() {
         storage.dispatchEvent(new CustomEvent("rise-storage-error", {
-          "detail": null,
+          "detail": {
+            "error": {
+              "currentTarget": {
+                "status": 0
+              }
+            }},
           "bubbles": true
         }));
 
         spy = sinon.spy(RiseVision.Common.Logger, "log");
         clock.tick(5000);
 
-        assert(spy.calledTwice);  // storage error + done
+        assert(spy.calledTwice);  // rise storage error + done
 
         spyCall = RiseVision.Common.Logger.log.getCall(0);
 
@@ -184,9 +196,14 @@
         assert.deepEqual(spyCall.args[1], params);
       });
 
-      test("should not log a storage error when done is fired if the error has resolved itself on a refresh", function() {
+      test("should not log a rise storage error when done is fired if the error has resolved itself on a refresh", function() {
         storage.dispatchEvent(new CustomEvent("rise-storage-error", {
-          "detail": null,
+          "detail": {
+            "error": {
+              "currentTarget": {
+                "status": 0
+              }
+            }},
           "bubbles": true
         }));
 
@@ -194,9 +211,11 @@
         RiseVision.Video.onFileRefresh(window.gadget.settings.additionalParams.selector.url);
 
         spy = sinon.spy(RiseVision.Common.Logger, "log");
+
         params.event = "done";
         params.file_url = window.gadget.settings.additionalParams.selector.url;
         params.file_format = "webm";
+        delete params.event_details;  // No event_details for a done event.
 
         clock.tick(5000);
 

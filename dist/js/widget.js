@@ -823,15 +823,21 @@ RiseVision.Video.StorageFile = function (data) {
       RiseVision.Video.showError("The selected video is temporarily unavailable.");
     });
 
-    storage.addEventListener("rise-storage-error", function() {
-      var params = { "event": "storage error" };
+    storage.addEventListener("rise-storage-error", function(e) {
+      var params = {
+        "event": "rise storage error",
+        "event_details": "The request failed with status code: " + e.detail.error.currentTarget.status
+      };
 
       RiseVision.Video.logEvent(params, true);
       RiseVision.Video.showError("Sorry, there was a problem playing the video from Storage.");
     });
 
-    storage.addEventListener("rise-cache-error", function() {
-      var params = { "event": "cache error" };
+    storage.addEventListener("rise-cache-error", function(e) {
+      var params = {
+        "event": "rise cache error",
+        "event_details": "The request failed with status code: " + e.detail.error.currentTarget.status
+      };
 
       RiseVision.Video.logEvent(params, true);
       RiseVision.Video.showError("Sorry, there was a problem playing the video from Cache.");
@@ -953,15 +959,21 @@ RiseVision.Video.StorageFolder = function (data) {
       RiseVision.Video.showError("The selected folder does not exist.");
     });
 
-    storage.addEventListener("rise-storage-error", function() {
-      var params = { "event": "storage error" };
+    storage.addEventListener("rise-storage-error", function(e) {
+      var params = {
+        "event": "rise storage error",
+        "event_details": "The request failed with status code: " + e.detail.error.currentTarget.status
+      };
 
       RiseVision.Video.logEvent(params, true);
       RiseVision.Video.showError("Sorry, there was a problem playing the video from Storage.");
     });
 
-    storage.addEventListener("rise-cache-error", function() {
-      var params = { "event": "cache error" };
+    storage.addEventListener("rise-cache-error", function(e) {
+      var params = {
+        "event": "rise cache error",
+        "event_details": "The request failed with status code: " + e.detail.error.currentTarget.status
+      };
 
       RiseVision.Video.logEvent(params, true);
       RiseVision.Video.showError("Sorry, there was a problem playing the video from Cache.");
