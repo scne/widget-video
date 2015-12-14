@@ -830,7 +830,7 @@ RiseVision.Video.StorageFile = function (data) {
       };
 
       RiseVision.Video.logEvent(params, true);
-      RiseVision.Video.showError("Sorry, there was a problem playing the video from Storage.");
+      RiseVision.Video.showError("Sorry, there was a problem communicating with Rise Storage.");
     });
 
     storage.addEventListener("rise-cache-error", function(e) {
@@ -966,7 +966,7 @@ RiseVision.Video.StorageFolder = function (data) {
       };
 
       RiseVision.Video.logEvent(params, true);
-      RiseVision.Video.showError("Sorry, there was a problem playing the video from Storage.");
+      RiseVision.Video.showError("Sorry, there was a problem communicating with Rise Storage.");
     });
 
     storage.addEventListener("rise-cache-error", function(e) {
