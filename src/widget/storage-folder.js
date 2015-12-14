@@ -106,7 +106,7 @@ RiseVision.Video.StorageFolder = function (data) {
         "event": "rise storage error",
         "event_details": "The request failed with status code: " + e.detail.error.currentTarget.status
       };
-      console.log(e);
+
       RiseVision.Video.logEvent(params, true);
       RiseVision.Video.showError("Sorry, there was a problem playing the video from Storage.");
     });
