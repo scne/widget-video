@@ -697,13 +697,13 @@ RiseVision.Video = (function (gadgets) {
   function playerError(error) {
     var details = null,
       params = {},
-      url = "",
       message = "Sorry, there was a problem playing the video.",
       MEDIA_ERROR = "Error loading media: File could not be played",
       YOUTUBE_ERROR = "Error loading YouTube: Video could not be played",
       PLAYER_ERROR = "Error loading player: No playable sources found",
-      FORMAT_MESSAGE = "There was a problem playing that video. It could be that we don't " +
-        "support that format or it is not encoded correctly.";
+      ENCODING_MESSAGE = "There was a problem playing that video. It could be that we don't " +
+        "support that format or it is not encoded correctly.",
+      FORMAT_MESSAGE = "The format of that video is not supported";
 
     _playbackError = true;
 
@@ -718,18 +718,13 @@ RiseVision.Video = (function (gadgets) {
         details = error.message;
       }
 
-      // Check if there is an issue with the format.
+      // Display appropriate on-screen error message.
       if (error.message) {
         if ((error.message === MEDIA_ERROR) || (error.message === YOUTUBE_ERROR)) {
-          message = FORMAT_MESSAGE;
+          message = ENCODING_MESSAGE;
         }
         else if (error.message === PLAYER_ERROR) {
-          url = _getCurrentFile();
-
-          // Check if this is a Youtube video.
-          if (url && url.indexOf("www.youtube.com") > -1) {
-            message = FORMAT_MESSAGE;
-          }
+          message = FORMAT_MESSAGE;
         }
       }
     }

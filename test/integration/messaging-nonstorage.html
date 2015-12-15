@@ -86,11 +86,10 @@
         assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
       });
 
-      test("should show format error message when no playable sources are found and video is a Youtube video", function() {
-        RiseVision.Video.onFileInit("https://www.youtube.com/watch?v=dbDT0hD2SBo");
+      test("should show appropriate error message when no playable sources are found", function() {
         RiseVision.Video.playerError({ "message": "Error loading player: No playable sources found" });
 
-        assert.equal(document.querySelector(".message").innerHTML, FORMAT_MESSAGE, "message text");
+        assert.equal(document.querySelector(".message").innerHTML, "The format of that video is not supported", "message text");
         assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
       });
 
