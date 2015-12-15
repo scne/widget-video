@@ -118,7 +118,7 @@ RiseVision.Video.StorageFolder = function (data) {
       };
 
       RiseVision.Video.logEvent(params, true);
-      RiseVision.Video.showError("The video could not be accessed.");
+      RiseVision.Video.showError("There was a problem retrieving the file from Rise Cache.");
     });
 
     storage.setAttribute("fileType", "video");

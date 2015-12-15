@@ -209,7 +209,7 @@
         assert(onLogEventStub.calledOnce, "logEvent() called once");
         assert(onLogEventStub.calledWith(params, true), "logEvent() called with correct params");
         assert(onShowErrorStub.calledOnce, "showError() called once");
-        assert(onShowErrorStub.calledWith("The video could not be accessed."),
+        assert(onShowErrorStub.calledWith("There was a problem retrieving the file from Rise Cache."),
           "showError() called with correct message");
       });
 
