@@ -139,7 +139,7 @@
       });
 
       test("should show non-storage error message", function() {
-        assert.equal(document.querySelector(".message").innerHTML, "The selected video does not exist or has been moved to Trash.", "message text");
+        assert.equal(document.querySelector(".message").innerHTML, "The video could not be accessed.", "message text");
         assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
       });
 
