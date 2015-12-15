@@ -100,7 +100,12 @@
     suite("storage error", function() {
       test("should show storage error message", function() {
         storage.dispatchEvent(new CustomEvent("rise-storage-error", {
-          "detail": null,
+           "detail": {
+            "error": {
+              "currentTarget": {
+                "status": 0
+              }
+            }},
           "bubbles": true
         }));
 
@@ -113,7 +118,12 @@
           spy = sinon.spy(RiseVision.Video, "play");
 
         storage.dispatchEvent(new CustomEvent("rise-storage-error", {
-          "detail": null,
+           "detail": {
+            "error": {
+              "currentTarget": {
+                "status": 0
+              }
+            }},
           "bubbles": true
         }));
 
