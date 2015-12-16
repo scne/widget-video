@@ -136,6 +136,46 @@
         RiseVision.Video.play.restore();
       });
     });
+
+    suite("rise cache error", function () {
+      test("should show rise cache error message", function() {
+        storage.dispatchEvent(new CustomEvent("rise-cache-error", {
+          "detail": {
+            "error": {
+              "currentTarget": {
+                "status": 0
+              }
+            }},
+          "bubbles": true
+        }));
+
+        assert.equal(document.querySelector(".message").innerHTML, "There was a problem retrieving the file from Rise Cache.", "message text");
+        assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
+      });
+
+      test("should call play function 5 seconds after a rise cache error", function() {
+        var clock = sinon.useFakeTimers(),
+          spy = sinon.spy(RiseVision.Video, "play");
+
+        storage.dispatchEvent(new CustomEvent("rise-cache-error", {
+          "detail": {
+            "error": {
+              "currentTarget": {
+                "status": 0
+              }
+            }},
+          "bubbles": true
+        }));
+
+        clock.tick(4500);
+        assert(spy.notCalled);
+        clock.tick(500);
+        assert(spy.calledOnce);
+
+        clock.restore();
+        RiseVision.Video.play.restore();
+      });
+    });
   });
 </script>
 </body>

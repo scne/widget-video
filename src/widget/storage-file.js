@@ -66,7 +66,7 @@ RiseVision.Video.StorageFile = function (data) {
       };
 
       RiseVision.Video.logEvent(params, true);
-      RiseVision.Video.showError("Sorry, there was a problem playing the video from Cache.");
+      RiseVision.Video.showError("There was a problem retrieving the file from Rise Cache.");
     });
 
 

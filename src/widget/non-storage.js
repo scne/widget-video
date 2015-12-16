@@ -37,7 +37,7 @@ RiseVision.Video.NonStorage = function (data) {
           "url": response.url
         }, true);
 
-        RiseVision.Video.showError("The selected video does not exist or has been moved to Trash.");
+        RiseVision.Video.showError("There was a problem retrieving the file from Rise Cache.");
       }
     }, omitCacheBuster);
   }
