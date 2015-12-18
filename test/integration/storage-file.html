@@ -99,9 +99,10 @@
     });
 
     suite("Storage Refresh - file changed", function() {
-      var onRefreshStub = sinon.stub(RiseVision.Video, "onFileRefresh", function(){});
 
-      suiteSetup(function() {
+      test("should call onFileRefresh() when file changed", function() {
+        var onRefreshStub = sinon.stub(RiseVision.Video, "onFileRefresh", function(){});
+
         storage.dispatchEvent(new CustomEvent("rise-storage-response", {
           "detail": {
             "changed": true,
@@ -109,14 +110,30 @@
           },
           "bubbles": true
         }));
-      });
 
-      suiteTeardown(function() {
+        assert(onRefreshStub.calledOnce);
+
         RiseVision.Video.onFileRefresh.restore();
       });
 
-      test("RiseVision.Video.onStorageRefresh called when file changed", function() {
-        assert(onRefreshStub.calledOnce);
+    });
+
+    suite("Storage Refresh - file unchanged", function() {
+
+      test("should not call onFileRefresh() when file has not changed", function() {
+        var onRefreshStub = sinon.stub(RiseVision.Video, "onFileRefresh", function(){});
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-response", {
+          "detail": {
+            "changed": false,
+            "url": "https://storage.googleapis.com/risemedialibrary-b428b4e8-c8b9-41d5-8a10-b4193c789443/Widgets%2Fvideos%2Fbig_buck_bunny.webm"
+          },
+          "bubbles": true
+        }));
+
+        assert(onRefreshStub.notCalled);
+
+        RiseVision.Video.onFileRefresh.restore();
       });
 
     });
@@ -213,6 +230,37 @@
           "showError() called with correct message");
       });
 
+    });
+
+    suite("Network Recovery", function () {
+
+      test("should call onFileRefresh() if in state of storage error and network recovered", function() {
+        var onRefreshStub = sinon.stub(RiseVision.Video, "onFileRefresh", function(){});
+
+        // force a storage error in the scenario of a network failure
+        storage.dispatchEvent(new CustomEvent("rise-storage-error", {
+          "detail": {
+            "error": {
+              "currentTarget": {
+                "status": 0
+              }
+            }},
+          "bubbles": true
+        }));
+
+        // force a response in the scenario of the network recovered
+        storage.dispatchEvent(new CustomEvent("rise-storage-response", {
+          "detail": {
+            "changed": false,
+            "url": "https://storage.googleapis.com/risemedialibrary-b428b4e8-c8b9-41d5-8a10-b4193c789443/Widgets%2Fvideos%2Fbig_buck_bunny.webm"
+          },
+          "bubbles": true
+        }));
+
+        assert(onRefreshStub.calledOnce);
+
+        RiseVision.Video.onFileRefresh.restore();
+      });
     });
 
   });

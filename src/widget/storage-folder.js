@@ -73,9 +73,19 @@ RiseVision.Video.StorageFolder = function (data) {
         }
       }
 
-      // Changed
-      if(file.changed) {
-        _changeFile(file);
+      // Changed or unchanged
+      if (file.hasOwnProperty("changed")) {
+        if(file.changed) {
+          _changeFile(file);
+        }
+        else {
+          // in the event of a network failure and recovery, check if the Widget is in a state of storage error
+          if (!RiseVision.Video.hasStorageError()) {
+            // only proceed with refresh logic below if there's been a storage error, otherwise do nothing
+            // this is so the Widget can eventually play video again from a network recovery
+            return;
+          }
+        }
       }
 
       // Deleted
@@ -108,7 +118,7 @@ RiseVision.Video.StorageFolder = function (data) {
       };
 
       RiseVision.Video.logEvent(params, true);
-      RiseVision.Video.showError("Sorry, there was a problem communicating with Rise Storage.");
+      RiseVision.Video.showError("Sorry, there was a problem communicating with Rise Storage.", true);
     });
 
     storage.addEventListener("rise-cache-error", function(e) {

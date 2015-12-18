@@ -14,16 +14,17 @@ RiseVision.Video = (function (gadgets) {
     _message = null,
     _frameController = null;
 
-  var _playbackError = false,
-    _viewerPaused = true;
+  var _viewerPaused = true;
 
   var _currentFrame = 0;
 
   var _currentFiles = [];
 
-  var _error = null,
+  var _errorLog = null,
     _errorTimer = null,
     _errorFlag = false;
+
+  var _storageErrorFlag = false;
 
   var _logger = RiseVision.Common.Logger;
 
@@ -34,8 +35,8 @@ RiseVision.Video = (function (gadgets) {
     gadgets.rpc.call("", "rsevent_done", null, _prefs.getString("id"));
 
     // Any errors need to be logged before the done event.
-    if (_error !== null) {
-      logEvent(_error, true);
+    if (_errorLog !== null) {
+      logEvent(_errorLog, true);
     }
 
     logEvent({ "event": "done" }, false);
@@ -125,8 +126,13 @@ RiseVision.Video = (function (gadgets) {
   /*
    *  Public Methods
    */
-  function showError(message) {
+  function hasStorageError() {
+    return _storageErrorFlag;
+  }
+
+  function showError(message, isStorageError) {
     _errorFlag = true;
+    _storageErrorFlag = typeof isStorageError !== "undefined";
 
     _message.show(message);
 
@@ -140,7 +146,7 @@ RiseVision.Video = (function (gadgets) {
 
   function logEvent(params, isError) {
     if (isError) {
-      _error = params;
+      _errorLog = params;
     }
 
     _getLoggerParams(params, function(json) {
@@ -174,8 +180,9 @@ RiseVision.Video = (function (gadgets) {
     }
 
     // in case refreshed file fixes an error with previous file, ensure flag is removed so playback is attempted again
-    _playbackError = false;
-    _error = null;
+    _errorFlag = false;
+    _storageErrorFlag = false;
+    _errorLog = null;
   }
 
   function pause() {
@@ -183,10 +190,8 @@ RiseVision.Video = (function (gadgets) {
 
     _viewerPaused = true;
 
-    if (_errorFlag) {
-      _clearErrorTimer();
-      return;
-    }
+    // in case error timer still running (no conditional check on errorFlag, it may have been reset in onFileRefresh)
+    _clearErrorTimer();
 
     if (frameObj) {
       frameObj.pause();
@@ -205,24 +210,22 @@ RiseVision.Video = (function (gadgets) {
       return;
     }
 
-    if (!_playbackError) {
-      if (frameObj) {
-        frameObj.play();
-      } else {
+    if (frameObj) {
+      frameObj.play();
+    } else {
 
-        if (_currentFiles && _currentFiles.length > 0) {
-          if (_mode === "file") {
-            // add frame and create the player
-            _frameController.add(0);
-            _frameController.createFramePlayer(0, _additionalParams, _currentFiles[0], config.SKIN, "player-file.html");
-          }
-          else if (_mode === "folder") {
-            _frameController.add(0);
-            _frameController.createFramePlayer(0, _additionalParams, _currentFiles, config.SKIN, "player-folder.html");
-          }
+      if (_currentFiles && _currentFiles.length > 0) {
+        if (_mode === "file") {
+          // add frame and create the player
+          _frameController.add(0);
+          _frameController.createFramePlayer(0, _additionalParams, _currentFiles[0], config.SKIN, "player-file.html");
         }
-
+        else if (_mode === "folder") {
+          _frameController.add(0);
+          _frameController.createFramePlayer(0, _additionalParams, _currentFiles, config.SKIN, "player-folder.html");
+        }
       }
+
     }
   }
 
@@ -312,8 +315,6 @@ RiseVision.Video = (function (gadgets) {
         "support that format or it is not encoded correctly.",
       FORMAT_MESSAGE = "The format of that video is not supported";
 
-    _playbackError = true;
-
     if (error) {
       if (error.type && error.message) {
         details = error.type + " - " + error.message;
@@ -348,6 +349,7 @@ RiseVision.Video = (function (gadgets) {
   }
 
   return {
+    "hasStorageError": hasStorageError,
     "logEvent": logEvent,
     "onFileInit": onFileInit,
     "onFileRefresh": onFileRefresh,
