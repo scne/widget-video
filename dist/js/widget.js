@@ -671,7 +671,7 @@ RiseVision.Video = (function (gadgets) {
         _nonStorage = new RiseVision.Video.NonStorage(_additionalParams);
         _nonStorage.init();
       } else {
-        details = "storage";
+        details = "storage file";
 
         // create and initialize the Storage file instance
         _storage = new RiseVision.Video.StorageFile(_additionalParams);
@@ -679,7 +679,7 @@ RiseVision.Video = (function (gadgets) {
       }
     }
     else if (_mode === "folder") {
-      details = "storage";
+      details = "storage folder";
 
       // create and initialize the Storage folder instance
       _storage = new RiseVision.Video.StorageFolder(_additionalParams);
