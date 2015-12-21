@@ -46,7 +46,10 @@
       expect(element(by.css("form[name='settingsForm'].ng-invalid")).isPresent()).to.eventually.be.true;
 
       // Resume playing should be 5
-      expect(element(by.model("settings.additionalParams.video.pause")).getAttribute("value")).to.eventually.equal('5');
+      expect(element(by.model("settings.additionalParams.video.pause")).getAttribute("value")).to.eventually.equal("5");
+
+      // Resume Playing from Last Position should be true
+      expect(element(by.model("settings.additionalParams.video.resume")).isSelected()).to.eventually.be.true;
 
       // Scale To Fit should be true
       expect(element(by.model("settings.additionalParams.video.scaleToFit")).isSelected()).to.eventually.be.true;
@@ -117,6 +120,7 @@
             "volume": 50,
             "controls": true,
             "autoplay": true,
+            "resume": true,
             "pause": 5
           }
         }
@@ -130,8 +134,8 @@
 
       expect(browser.executeScript("return window.result")).to.eventually.deep.equal(
         {
-          'additionalParams': JSON.stringify(settings.additionalParams),
-          'params': ''
+          "additionalParams": JSON.stringify(settings.additionalParams),
+          "params": ""
         });
     });
 

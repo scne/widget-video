@@ -113,5 +113,12 @@ describe("Unit Tests - Settings Controller", function () {
 
   });
 
+  it("should check resume by default if it has not been set", function() {
+    scope.settings.additionalParams.video.resume = undefined;
+    scope.$digest();
+
+    expect(scope.settings.additionalParams.video.resume).to.be.true;
+  });
+
 
 });

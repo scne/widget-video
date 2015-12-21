@@ -30195,6 +30195,12 @@ angular.module("risevision.widget.video.settings")
         }
       });
 
+      $scope.$watch("settings.additionalParams.video", function (video) {
+        if ((typeof video !== "undefined") && (typeof video.resume === "undefined")) {
+          $scope.settings.additionalParams.video.resume = true;
+        }
+      });
+
     }])
   .value("defaultSettings", {
     params: {},
@@ -30207,6 +30213,7 @@ angular.module("risevision.widget.video.settings")
         volume: 50,
         controls: true,
         autoplay: true,
+        resume: true,
         pause: 5 // merged from folder
       }
     }

@@ -337,7 +337,23 @@ RiseVision.Common.RiseCache = (function () {
 
       xhr.open(method, url, true);
 
-      xhr.addEventListener("loadend", function () {
+      xhr.onerror = function () {
+        // Server may not support HEAD request. Fallback to a GET request.
+        if (method === "HEAD") {
+          makeRequest("GET", url);
+        }
+        else {
+          if (_isCacheRunning) {
+            callback(request, new Error("The request failed with no status"));
+          } else{
+            // This is to avoid throwing an error when there is a cross domain issue
+            callback(request);
+          }
+        }
+      };
+
+      xhr.onload = function () {
+
         var status = xhr.status || 0;
 
         if (status >= 200 && status < 300) {
@@ -346,16 +362,11 @@ RiseVision.Common.RiseCache = (function () {
           // Server may not support HEAD request. Fallback to a GET request.
           if (method === "HEAD") {
             makeRequest("GET", url);
-          } else {
-            if (_isCacheRunning) {
-              callback(request, new Error("The request failed with status code: " + status));
-            } else{
-              // This is to avoid throwing an error when there is a cross domain issue
-              callback(request);
-            }
           }
-        }
-      });
+          else {
+            callback(request, new Error("The request failed with status code: " + status));
+          }
+        }};
 
       xhr.send();
     }
@@ -408,6 +419,8 @@ RiseVision.Video = (function (gadgets) {
     _frameController = null;
 
   var _viewerPaused = true;
+
+  var _resume = true;
 
   var _currentFrame = 0;
 
@@ -587,7 +600,13 @@ RiseVision.Video = (function (gadgets) {
     _clearErrorTimer();
 
     if (frameObj) {
-      frameObj.pause();
+      // Destroy player iframe.
+      if (!_resume) {
+        _frameController.remove(_currentFrame);
+      }
+      else {
+        frameObj.pause();
+      }
     }
   }
 
@@ -656,6 +675,10 @@ RiseVision.Video = (function (gadgets) {
 
     _additionalParams.width = _prefs.getInt("rsW");
     _additionalParams.height = _prefs.getInt("rsH");
+
+    if (_additionalParams.video.hasOwnProperty("resume")) {
+      _resume = _additionalParams.video.resume;
+    }
 
     _message = new RiseVision.Common.Message(document.getElementById("videoContainer"),
       document.getElementById("messageContainer"));

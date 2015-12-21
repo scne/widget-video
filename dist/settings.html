@@ -67,27 +67,43 @@
             <div class="row">
               <div class="checkbox">
                 <div class="form-group">
+
+                  <!-- Resume Playback -->
+                  <div class="col-md-12">
+                    <label class="add-bottom">
+                      <input type="checkbox" ng-model="settings.additionalParams.video.resume">
+                      {{"widgets.resume" | translate}}
+                    </label>
+                  </div>
+
+                  <!-- Scale to Fit -->
                   <div class="col-md-12">
                     <label class="add-bottom">
                       <input name="video-scale" type="checkbox" ng-model="settings.additionalParams.video.scaleToFit">
                       {{"widgets.scale-to-fit" | translate}}
                     </label>
                   </div>
+
+                  <!-- Controls -->
                   <div class="col-md-12">
-                      <label class="add-bottom">
-                        <input type="checkbox" ng-model="settings.additionalParams.video.controls">
-                        {{"video.options.controls" | translate}}
-                      </label>
+                    <label class="add-bottom">
+                      <input type="checkbox" ng-model="settings.additionalParams.video.controls">
+                      {{"video.options.controls" | translate}}
+                    </label>
                   </div>
+
+                  <!-- Auto Play -->
                   <div class="col-md-12" ng-show="settings.additionalParams.video.controls">
                     <label class="add-bottom">
                       <input type="checkbox" ng-model="settings.additionalParams.video.autoplay">
                       {{"video.options.autoplay" | translate}}
                     </label>
                   </div>
-                </div>
-              </div>
-            </div>
+
+                </div><!-- .form-group -->
+              </div><!-- .checkbox -->
+            </div><!-- .row -->
+
             <!-- Pause -->
             <div class="row" ng-show="settings.additionalParams.video.controls">
               <div class="col-md-4">
@@ -104,8 +120,9 @@
                 </div>
               </div>
             </div>
+
             <hr>
-          </div>
+          </div><!-- .modal-body -->
 
           <!-- Modal Footer-->
           <div class="modal-footer">
