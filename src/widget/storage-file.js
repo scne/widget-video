@@ -27,9 +27,18 @@ RiseVision.Video.StorageFile = function (data) {
           RiseVision.Video.onFileInit(e.detail.url);
         }
         else {
-          // check for "changed" property and ensure it is true
-          if (e.detail.hasOwnProperty("changed") && e.detail.changed) {
-            RiseVision.Video.onFileRefresh(e.detail.url);
+          // check for "changed" property
+          if (e.detail.hasOwnProperty("changed")) {
+            if (e.detail.changed) {
+              RiseVision.Video.onFileRefresh(e.detail.url);
+            }
+            else {
+              // in the event of a network failure and recovery, check if the Widget is in a state of storage error
+              if (RiseVision.Video.hasStorageError()) {
+                // proceed with refresh logic so the Widget can eventually play video again from a network recovery
+                RiseVision.Video.onFileRefresh(e.detail.url);
+              }
+            }
           }
         }
       }
@@ -56,7 +65,7 @@ RiseVision.Video.StorageFile = function (data) {
       };
 
       RiseVision.Video.logEvent(params, true);
-      RiseVision.Video.showError("Sorry, there was a problem communicating with Rise Storage.");
+      RiseVision.Video.showError("Sorry, there was a problem communicating with Rise Storage.", true);
     });
 
     storage.addEventListener("rise-cache-error", function(e) {

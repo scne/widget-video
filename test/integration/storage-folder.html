@@ -150,6 +150,32 @@
 
     });
 
+    suite("unchanged", function() {
+      var refreshStub;
+
+      suiteSetup(function() {
+        refreshStub = sinon.stub(RiseVision.Video, "onFileRefresh");
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-response", {
+          "detail": {
+            "changed": false,
+            "name": "Widgets/videos/big_buck_bunny.webm",
+            "url": "https://www.googleapis.com/storage/v1/b/risemedialibrary-b428b4e8-c8b9-41d5-8a10-b4193c789443/o/Widgets%2Fvideos%2Fbig_buck_bunny.webm?alt=media"
+          },
+          "bubbles": true
+        }));
+      });
+
+      suiteTeardown(function() {
+        RiseVision.Video.onFileRefresh.restore();
+      });
+
+      test("Should not call onFileRefresh when files have not changed", function () {
+        assert(refreshStub.notCalled);
+      });
+
+    });
+
     suite("deleted", function() {
       var refreshStub;
 
@@ -174,6 +200,38 @@
         assert(refreshStub.calledOnce);
       });
 
+    });
+
+    suite("Network Recovery", function () {
+
+      test("should call onFileRefresh() if in state of storage error and network recovered", function() {
+        var onRefreshStub = sinon.stub(RiseVision.Video, "onFileRefresh", function(){});
+
+        // force a storage error in the scenario of a network failure
+        storage.dispatchEvent(new CustomEvent("rise-storage-error", {
+          "detail": {
+            "error": {
+              "currentTarget": {
+                "status": 0
+              }
+            }},
+          "bubbles": true
+        }));
+
+        // force a response in the scenario of the network recovered
+        storage.dispatchEvent(new CustomEvent("rise-storage-response", {
+          "detail": {
+            "changed": false,
+            "name": "Widgets/videos/big_buck_bunny.webm",
+            "url": "https://www.googleapis.com/storage/v1/b/risemedialibrary-b428b4e8-c8b9-41d5-8a10-b4193c789443/o/Widgets%2Fvideos%2Fbig_buck_bunny.webm?alt=media"
+          },
+          "bubbles": true
+        }));
+
+        assert(onRefreshStub.calledOnce);
+
+        RiseVision.Video.onFileRefresh.restore();
+      });
     });
 
   });
