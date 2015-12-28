@@ -16,6 +16,8 @@ RiseVision.Video = (function (gadgets) {
 
   var _viewerPaused = true;
 
+  var _resume = true;
+
   var _currentFrame = 0;
 
   var _currentFiles = [];
@@ -194,7 +196,13 @@ RiseVision.Video = (function (gadgets) {
     _clearErrorTimer();
 
     if (frameObj) {
-      frameObj.pause();
+      // Destroy player iframe.
+      if (!_resume) {
+        _frameController.remove(_currentFrame);
+      }
+      else {
+        frameObj.pause();
+      }
     }
   }
 
@@ -263,6 +271,10 @@ RiseVision.Video = (function (gadgets) {
 
     _additionalParams.width = _prefs.getInt("rsW");
     _additionalParams.height = _prefs.getInt("rsH");
+
+    if (_additionalParams.video.hasOwnProperty("resume")) {
+      _resume = _additionalParams.video.resume;
+    }
 
     _message = new RiseVision.Common.Message(document.getElementById("videoContainer"),
       document.getElementById("messageContainer"));
