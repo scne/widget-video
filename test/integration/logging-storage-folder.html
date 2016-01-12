@@ -305,6 +305,45 @@
         assert(spy.calledWith(table, params));
       });
     });
+
+    suite("storage folder format(s) invalid", function() {
+      var spyCall;
+
+      test("should log a storage folder format(s) invalid error", function() {
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        var filePath = window.gadget.settings.additionalParams.storage.folder;
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-folder-invalid", {
+          "detail": filePath,
+          "bubbles": true
+        }));
+
+        params.event = "storage folder format(s) invalid";
+
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
+      });
+
+      test("should log a storage folder format(s) invalid error when done is fired", function() {
+
+        var filePath = window.gadget.settings.additionalParams.storage.folder;
+        storage.dispatchEvent(new CustomEvent("rise-storage-folder-invalid", {
+          "detail": filePath,
+          "bubbles": true
+        }));
+
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        clock.tick(5000);
+        assert(spy.calledTwice);  // storage folder doesn't exist + done
+
+        spyCall = RiseVision.Common.Logger.log.getCall(0);
+
+        assert.equal(spyCall.args[0], table);
+        assert.deepEqual(spyCall.args[1], params);
+      });
+
+    });
+
   });
 </script>
 </body>
