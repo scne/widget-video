@@ -108,7 +108,7 @@ RiseVision.Video.StorageFolder = function (data) {
       var params = { "event": "storage folder doesn't exist", "event_details": e.detail };
 
       RiseVision.Video.logEvent(params, true);
-      RiseVision.Video.showError("The selected folder does not exist.");
+      RiseVision.Video.showError("The selected folder does not exist or has been moved to Trash.");
     });
 
     storage.addEventListener("rise-storage-error", function(e) {
