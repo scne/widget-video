@@ -79,6 +79,19 @@
       });
     });
 
+    suite("format(s) invalid", function () {
+      suiteSetup(function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-folder-invalid", {
+          "detail": null,
+          "bubbles": true
+        }));
+      });
+
+      test("should show format(s) invalid message", function() {
+        assert.equal(document.querySelector(".message").innerHTML, "The selected folder does not contain any supported video formats.", "message is correct");
+      });
+    });
+
     suite("normal storage response", function() {
       suiteSetup(function() {
         storage.dispatchEvent(new CustomEvent("rise-storage-response", {

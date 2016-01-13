@@ -191,7 +191,7 @@
      *
      * @property _baseCacheUrl
      * @type string
-     * @default "http://localhost:9494/cb="
+     * @default "http://localhost:9494/"
      */
     _baseCacheUrl: "http://localhost:9494/",
 
@@ -518,7 +518,9 @@
         file = {},
         previousItem = null,
         suffix = "?alt=media",
-        cb = "&cb=" + new Date().getTime();
+        cb = "&cb=" + new Date().getTime(),
+        filesFiltered = 0,
+        totalFiles = 0;
 
       if (resp.files) {
         if (this.sort) {
@@ -548,7 +550,10 @@
           // Check that current item is not a folder.
           if (item.name && (item.name.slice(-1) !== "/")) {
             if (item.selfLink !== undefined) {
+              totalFiles += 1;
+
               if (!self._filterFiles(item.contentType)) {
+                filesFiltered += 1;
                 return;
               }
 
@@ -634,7 +639,15 @@
 
         this._processRemovedFiles(resp.files);
         this._isLoading = false;
-        this._startTimer();
+
+        if (totalFiles === filesFiltered) {
+          // notify that no valid files are in folder, wrong formats
+          this.fire("rise-storage-folder-invalid");
+        }
+        else {
+          this._startTimer();
+        }
+
       }
     },
 
@@ -697,6 +710,10 @@
         if (this._folderFilesToRequest.length > 0) {
           // request the first folder file in the list
           this._requestCacheFolderFile(this._folderFilesToRequest[0]);
+        }
+        else {
+          // notify that no valid files are in folder, wrong formats
+          this.fire("rise-storage-folder-invalid");
         }
       }
     },

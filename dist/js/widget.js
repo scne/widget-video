@@ -976,6 +976,13 @@ RiseVision.Video.StorageFolder = function (data) {
       RiseVision.Video.showError("The selected folder does not exist or has been moved to Trash.");
     });
 
+    storage.addEventListener("rise-storage-folder-invalid", function () {
+      var params = { "event": "storage folder format(s) invalid" };
+
+      RiseVision.Video.logEvent(params, true);
+      RiseVision.Video.showError("The selected folder does not contain any supported video formats.");
+    });
+
     storage.addEventListener("rise-storage-error", function(e) {
       var params = {
         "event": "rise storage error",
