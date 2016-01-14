@@ -29759,7 +29759,6 @@ var  config = {
   STORAGE_ENV: "prod"
 };
 
-
 angular.module("risevision.widget.video.settings", [
   "risevision.common.i18n",
   "risevision.widget.common",

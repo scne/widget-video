@@ -84,7 +84,6 @@
           "event": "configuration",
           "event_details": "custom",
           "file_url": null,
-          "file_format": null,
           "company_id": params.company_id,
           "display_id": params.display_id
         });
@@ -106,6 +105,18 @@
 
         assert(logStub.calledOnce);
         assert(logStub.calledWith(table, params));
+      });
+
+      test("should not log the configuration event", function () {
+        RiseVision.Video.play();
+
+        assert(logStub.neverCalledWith(table, {
+          "event": "configuration",
+          "event_details": "custom",
+          "file_url": null,
+          "company_id": params.company_id,
+          "display_id": params.display_id
+        }));
       });
     });
 
@@ -132,6 +143,8 @@
 
       test("should log a player error", function() {
         params.event = "player error";
+        params.event_details = null;
+
         RiseVision.Video.playerError();
 
         assert(logStub.calledOnce);
