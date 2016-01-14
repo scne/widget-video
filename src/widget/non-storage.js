@@ -37,7 +37,14 @@ RiseVision.Video.NonStorage = function (data) {
           "url": response.url
         }, true);
 
-        RiseVision.Video.showError("There was a problem retrieving the file from Rise Cache.");
+        // Show a different message if there is a 404 coming from rise cache
+        var statusCode = error.message.substring(error.message.indexOf(":")+2);
+
+        var errorMessage = "There was a problem retrieving the file from Rise Cache.";
+        if(statusCode === "404"){
+          errorMessage = "The image does not exist or cannot be accessed.";
+        }
+        RiseVision.Video.showError(errorMessage);
       }
     }, omitCacheBuster);
   }

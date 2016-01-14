@@ -134,18 +134,26 @@
         requests[0].respond(200);
 
         nonStorage.init();
-        requests[1].respond(0); // HEAD request
-        requests[2].respond(0); // GET request
       });
 
       test("should show non-storage error message", function() {
+        requests[1].respond(0); // HEAD request
+        requests[2].respond(0); // GET request
         assert.equal(document.querySelector(".message").innerHTML, "There was a problem retrieving the file from Rise Cache.", "message text");
+        assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
+      });
+
+      test("should show non-storage error message for 404", function() {
+        requests[1].respond(404); // HEAD request
+        requests[2].respond(404); // GET request
+        assert.equal(document.querySelector(".message").innerHTML, "The image does not exist or cannot be accessed.", "message text");
         assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
       });
 
       test("should call play function 5 seconds after a non-storage error", function() {
         var spy = sinon.spy(RiseVision.Video, "play");
-
+        requests[1].respond(0); // HEAD request
+        requests[2].respond(0); // GET request
         clock.tick(4500);
         assert(spy.notCalled);
         clock.tick(500);
