@@ -153,6 +153,21 @@
         assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
       });
 
+      test("should show rise cache error message for 404 status", function() {
+        storage.dispatchEvent(new CustomEvent("rise-cache-error", {
+          "detail": {
+            "error": {
+              "currentTarget": {
+                "status": 404
+              }
+            }},
+          "bubbles": true
+        }));
+
+        assert.equal(document.querySelector(".message").innerHTML, "The image does not exist or cannot be accessed.", "message text");
+        assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
+      });
+
       test("should call play function 5 seconds after a rise cache error", function() {
         var clock = sinon.useFakeTimers(),
           spy = sinon.spy(RiseVision.Video, "play");
