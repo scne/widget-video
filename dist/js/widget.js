@@ -1289,21 +1289,19 @@ RiseVision.Common.Message = function (mainContainer, messageContainer) {
         companyId = values[0];
       }
 
-      if ((names[1] !== "undefined") && (names[1] === "displayId")) {
-        if (values[1] !== "undefined") {
+      if (names[1] === "displayId") {
+        if (values[1]) {
           displayId = values[1];
         }
-      else {
+        else {
           displayId = "preview";
         }
       }
 
       RiseVision.Common.LoggerUtils.setIds(companyId, displayId);
 
-      if ((names[2] !== "undefined") && (names[2] === "additionalParams")) {
-        if (values[2] !== "undefined") {
-          additionalParams = JSON.parse(values[2]);
-        }
+      if (names[2] === "additionalParams") {
+        additionalParams = JSON.parse(values[2]);
 
         if (Object.keys(additionalParams.storage).length !== 0) {
           // storage file or folder selected
