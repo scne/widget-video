@@ -29747,20 +29747,18 @@ module.run(["$templateCache", function($templateCache) {
 }]);
 })();
 
-/* global config: true */
 /* exported config */
-if (typeof config === "undefined") {
-  var config = {
-    SKIN: "skin/RVSkin.xml",
-    STORAGE_ENV: "prod"
-  };
-
-  if (typeof angular !== "undefined") {
-    angular.module("risevision.common.i18n.config", [])
-      .constant("LOCALES_PREFIX", "locales/translation_")
-      .constant("LOCALES_SUFIX", ".json");
-  }
+if (typeof angular !== "undefined") {
+  angular.module("risevision.common.i18n.config", [])
+    .constant("LOCALES_PREFIX", "locales/translation_")
+    .constant("LOCALES_SUFIX", ".json");
 }
+
+var  config = {
+  SKIN: "skin/RVSkin.xml",
+  STORAGE_ENV: "prod"
+};
+
 
 angular.module("risevision.widget.video.settings", [
   "risevision.common.i18n",

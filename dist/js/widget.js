@@ -376,20 +376,18 @@ RiseVision.Common.RiseCache = (function () {
 
 })();
 
-/* global config: true */
 /* exported config */
-if (typeof config === "undefined") {
-  var config = {
-    SKIN: "skin/RVSkin.xml",
-    STORAGE_ENV: "prod"
-  };
-
-  if (typeof angular !== "undefined") {
-    angular.module("risevision.common.i18n.config", [])
-      .constant("LOCALES_PREFIX", "locales/translation_")
-      .constant("LOCALES_SUFIX", ".json");
-  }
+if (typeof angular !== "undefined") {
+  angular.module("risevision.common.i18n.config", [])
+    .constant("LOCALES_PREFIX", "locales/translation_")
+    .constant("LOCALES_SUFIX", ".json");
 }
+
+var  config = {
+  SKIN: "skin/RVSkin.xml",
+  STORAGE_ENV: "prod"
+};
+
 
 /* global gadgets, config, _ */
 
@@ -855,7 +853,7 @@ RiseVision.Video.StorageFile = function (data) {
       if(statusCode === 404){
         errorMessage = "The image does not exist or cannot be accessed.";
       }
-      RiseVision.Image.showError(errorMessage);
+      RiseVision.Video.showError(errorMessage);
     });
 
 
@@ -1016,7 +1014,7 @@ RiseVision.Video.StorageFolder = function (data) {
       if(statusCode === 404){
         errorMessage = "The image does not exist or cannot be accessed.";
       }
-      RiseVision.Image.showError(errorMessage);
+      RiseVision.Video.showError(errorMessage);
     });
 
     storage.setAttribute("fileType", "video");
@@ -1078,7 +1076,7 @@ RiseVision.Video.NonStorage = function (data) {
         if(statusCode === "404"){
           errorMessage = "The image does not exist or cannot be accessed.";
         }
-        RiseVision.Image.showError(errorMessage);
+        RiseVision.Video.showError(errorMessage);
       }
     }, omitCacheBuster);
   }
