@@ -48,7 +48,6 @@
       params = {
         "event": "storage file not found",
         "file_url": null,
-        "file_format": null,
         "company_id": '"companyId"',
         "display_id": '"displayId"'
       }, paramsStub, configLogCall;
@@ -91,7 +90,6 @@
           "event": "configuration",
           "event_details": "storage file",
           "file_url": params.file_url,
-          "file_format": params.file_format,
           "company_id": params.company_id,
           "display_id": params.display_id
         });
@@ -106,9 +104,11 @@
         spy = sinon.spy(RiseVision.Common.Logger, "log");
 
         storage.dispatchEvent(new CustomEvent("rise-storage-no-file", {
-          "detail": null,
+          "detail": "/Fish_Tank_Project.webm",
           "bubbles": true
         }));
+
+        params.event_details = "/Fish_Tank_Project.webm";
 
         assert(spy.calledOnce);
         assert(spy.calledWith(table, params));
@@ -116,7 +116,7 @@
 
       test("should log a storage file not found error when done is fired", function() {
         storage.dispatchEvent(new CustomEvent("rise-storage-no-file", {
-          "detail": null,
+          "detail": "/Fish_Tank_Project.webm",
           "bubbles": true
         }));
 
@@ -132,7 +132,7 @@
 
       test("should not log a storage file not found error when done is fired if the error has resolved itself on a refresh", function() {
         storage.dispatchEvent(new CustomEvent("rise-storage-no-file", {
-          "detail": null,
+          "detail": "/Fish_Tank_Project.webm",
           "bubbles": true
         }));
 
@@ -143,6 +143,7 @@
         params.event = "done";
         params.file_url = window.gadget.settings.additionalParams.selector.url;
         params.file_format = "webm";
+        delete params.event_details;
 
         clock.tick(5000);
 

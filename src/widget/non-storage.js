@@ -34,7 +34,7 @@ RiseVision.Video.NonStorage = function (data) {
         RiseVision.Video.logEvent({
           "event": "non-storage error",
           "event_details": error.message,
-          "url": response.url
+          "file_url": response.url
         }, true);
 
         // Show a different message if there is a 404 coming from rise cache

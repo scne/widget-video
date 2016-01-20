@@ -52,7 +52,7 @@ RiseVision.Video.StorageFile = function (data) {
     });
 
     storage.addEventListener("rise-storage-file-throttled", function(e) {
-      var params = { "event": "storage file throttled", "url": e.detail };
+      var params = { "event": "storage file throttled", "file_url": e.detail };
 
       RiseVision.Video.logEvent(params, true);
       RiseVision.Video.showError("The selected video is temporarily unavailable.");

@@ -19,5 +19,3 @@ var config = {
     SKIN: "",
     STORAGE_ENV: "test"
 };
-
-

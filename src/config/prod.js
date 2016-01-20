@@ -9,4 +9,3 @@ var  config = {
   SKIN: "skin/RVSkin.xml",
   STORAGE_ENV: "prod"
 };
-

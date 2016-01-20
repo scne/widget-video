@@ -8,6 +8,9 @@ RiseVision.Video = (function (gadgets) {
 
   var _additionalParams, _mode;
 
+  var _isLoading = true,
+    _configDetails = null;
+
   var _prefs = null,
     _storage = null,
     _nonStorage = null,
@@ -27,8 +30,6 @@ RiseVision.Video = (function (gadgets) {
     _errorFlag = false;
 
   var _storageErrorFlag = false;
-
-  var _logger = RiseVision.Common.Logger;
 
   /*
    *  Private Methods
@@ -93,38 +94,6 @@ RiseVision.Video = (function (gadgets) {
     return null;
   }
 
-  // Get the parameters to pass to the event logger.
-  function _getLoggerParams(params, cb) {
-    var json = {},
-      utils = RiseVision.Common.LoggerUtils,
-      url = null;
-
-    if (params.event) {
-      json.event = params.event;
-    }
-
-    if (params.event_details) {
-      json.event_details = params.event_details;
-    }
-
-    if (params.url) {
-      url = params.url;
-    }
-    else {
-      url = _getCurrentFile();
-    }
-
-    json.file_url = url;
-    json.file_format = utils.getFileFormat(url);
-
-    utils.getIds(function(companyId, displayId) {
-      json.company_id = companyId;
-      json.display_id = displayId;
-
-      cb(json);
-    });
-  }
-
   /*
    *  Public Methods
    */
@@ -151,9 +120,11 @@ RiseVision.Video = (function (gadgets) {
       _errorLog = params;
     }
 
-    _getLoggerParams(params, function(json) {
-      _logger.log("video_events", json);
-    });
+    if (!params.file_url) {
+      params.file_url = _getCurrentFile();
+    }
+
+    RiseVision.Common.LoggerUtils.logEvent(getTableName(), params);
   }
 
   function onFileInit(urls) {
@@ -207,7 +178,17 @@ RiseVision.Video = (function (gadgets) {
   }
 
   function play() {
-    var frameObj = _frameController.getFrameObject(_currentFrame);
+    var logParams = {},
+      frameObj = _frameController.getFrameObject(_currentFrame);
+
+    if (_isLoading) {
+      _isLoading = false;
+
+      // Log configuration event.
+      logParams.event = "configuration";
+      logParams.event_details = _configDetails;
+      logEvent(logParams, false);
+    }
 
     _viewerPaused = false;
 
@@ -237,6 +218,10 @@ RiseVision.Video = (function (gadgets) {
     }
   }
 
+  function getTableName() {
+    return "video_events";
+  }
+
   function playerEnded() {
     _frameController.remove(_currentFrame, function () {
       _done();
@@ -259,9 +244,7 @@ RiseVision.Video = (function (gadgets) {
   }
 
   function setAdditionalParams(params, mode) {
-    var logParams = {},
-      details = null,
-      isStorageFile;
+    var isStorageFile;
 
     _additionalParams = _.clone(params);
     _mode = mode;
@@ -288,12 +271,12 @@ RiseVision.Video = (function (gadgets) {
       isStorageFile = (Object.keys(_additionalParams.storage).length !== 0);
 
       if (!isStorageFile) {
-        details = "custom";
+        _configDetails = "custom";
 
         _nonStorage = new RiseVision.Video.NonStorage(_additionalParams);
         _nonStorage.init();
       } else {
-        details = "storage file";
+        _configDetails = "storage file";
 
         // create and initialize the Storage file instance
         _storage = new RiseVision.Video.StorageFile(_additionalParams);
@@ -301,16 +284,12 @@ RiseVision.Video = (function (gadgets) {
       }
     }
     else if (_mode === "folder") {
-      details = "storage folder";
+      _configDetails = "storage folder";
 
       // create and initialize the Storage folder instance
       _storage = new RiseVision.Video.StorageFolder(_additionalParams);
       _storage.init();
     }
-
-    logParams.event = "configuration";
-    logParams.event_details = details;
-    logEvent(logParams, false);
 
     _ready();
   }
@@ -361,6 +340,7 @@ RiseVision.Video = (function (gadgets) {
   }
 
   return {
+    "getTableName": getTableName,
     "hasStorageError": hasStorageError,
     "logEvent": logEvent,
     "onFileInit": onFileInit,
