@@ -92,6 +92,16 @@
       });
     });
 
+    suite("no storage subscription", function () {
+      suiteSetup(function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-subscription-expired"));
+      });
+
+      test("should show the storage subscription not active message", function() {
+        assert.equal(document.querySelector(".message").innerHTML, "Rise Storage subscription is not active.", "message is correct");
+      });
+    });
+
     suite("normal storage response", function() {
       suiteSetup(function() {
         storage.dispatchEvent(new CustomEvent("rise-storage-response", {

@@ -49,6 +49,11 @@
       storage._handlePingError();
     });
 
+    sinon.stub(storage, "_getStorageSubscription", function () {
+      storage._computeStorageUrl();
+      storage._loadStorage();
+    });
+
     suite("Storage Initialization - file added", function () {
       var check = function(done) {
         if (responded) {

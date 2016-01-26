@@ -278,6 +278,51 @@
         assert(spy.calledWith(table, params));
       });
     });
+
+    suite("storage subscription expired", function() {
+      var spyCall;
+
+      test("should log a storage subscription expired error", function() {
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-subscription-expired"));
+
+        params.event = "storage subscription expired";
+
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
+      });
+
+      test("should log a storage subscription expired error when done is fired", function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-subscription-expired"));
+
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        clock.tick(5000);
+        assert(spy.calledTwice);  // storage subscription expired + done
+
+        spyCall = RiseVision.Common.Logger.log.getCall(0);
+
+        assert.equal(spyCall.args[0], table);
+        assert.deepEqual(spyCall.args[1], params);
+      });
+
+      test("should not log a storage subscription expired error when done is fired if the error has resolved itself on a refresh", function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-subscription-expired"));
+
+        // Resolve the error.
+        RiseVision.Video.onFileRefresh(window.gadget.settings.additionalParams.selector.url);
+
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        params.event = "done";
+        params.file_url = window.gadget.settings.additionalParams.selector.url;
+        params.file_format = "webm";
+
+        clock.tick(5000);
+
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
+      });
+    });
   });
 </script>
 </body>

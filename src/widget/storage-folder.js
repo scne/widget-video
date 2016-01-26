@@ -118,6 +118,13 @@ RiseVision.Video.StorageFolder = function (data) {
       RiseVision.Video.showError("The selected folder does not contain any supported video formats.");
     });
 
+    storage.addEventListener("rise-storage-subscription-expired", function() {
+      var params = { "event": "storage subscription expired" };
+
+      RiseVision.Video.logEvent(params, true);
+      RiseVision.Video.showError("Rise Storage subscription is not active.");
+    });
+
     storage.addEventListener("rise-storage-error", function(e) {
       var params = {
         "event": "rise storage error",
