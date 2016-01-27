@@ -12,6 +12,13 @@
       verbose="true">
     </iron-ajax>
 
+    <iron-ajax id="storageSubscription"
+       handle-as="json"
+       on-response="_handleStorageSubscriptionResponse"
+       on-error="_handleStorageSubscriptionError"
+       verbose="true">
+    </iron-ajax>
+
     <iron-ajax id="cache"
       method="{{_cacheRequestMethod}}"
       url="{{_cacheUrl}}"
@@ -22,7 +29,7 @@
     </iron-ajax>
 
     <iron-ajax id="ping"
-      url="http://localhost:9494/ping?callback=_handlePingResponse"
+      url="//localhost:9494/ping?callback=_handlePingResponse"
       handle-as="text"
       on-response="_handlePingResponse"
       on-error="_handlePingError"
@@ -191,9 +198,9 @@
      *
      * @property _baseCacheUrl
      * @type string
-     * @default "http://localhost:9494/"
+     * @default "//localhost:9494/"
      */
-    _baseCacheUrl: "http://localhost:9494/",
+    _baseCacheUrl: "//localhost:9494/",
 
     /**
      * Whether or not Rise Cache is running.
@@ -311,6 +318,36 @@
     },
 
     /***************************************** STORAGE ******************************************/
+
+    _getStorageSubscription: function() {
+      var url = "https://store-dot-rvaserver2.appspot.com/v1/company/" + this.companyid + "/product/status?pc=b0cba08a4baa0c62b8cdc621b6f6a124f89a03db";
+      this.$.storageSubscription.url = url;
+      this.$.storageSubscription.generateRequest();
+    },
+
+    _handleStorageSubscriptionResponse: function(e, resp) {
+      if (resp && resp.response) {
+        if (this._isExpired(resp.response)) {
+          console.log("Storage Subscription Expired!");
+          this.fire("rise-storage-subscription-expired");
+        } else {
+          this._computeStorageUrl();
+          this._loadStorage();
+        }
+      }
+    },
+
+    _handleStorageSubscriptionError: function(e, resp) {
+      this.fire("rise-storage-subscription-error", resp);
+    },
+
+    _isExpired: function(response) {
+      var expiredResponseType = ["Trial Expired", "Suspended", "Cancelled", "Not Subscribed", "Product Not Found", "Company Not Found", "Error"];
+
+      var statusIndex = expiredResponseType.indexOf(response[0].status);
+
+      return (statusIndex === -1) ? false : true;
+    },
 
     /**
      * Sets the URL that is used for making requests to Storage.
@@ -946,8 +983,7 @@
      */
     go: function() {
       if (this._pingReceived) {
-        this._computeStorageUrl();
-        this._loadStorage();
+       this._getStorageSubscription();
       }
     },
 

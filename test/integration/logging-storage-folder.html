@@ -342,6 +342,62 @@
 
     });
 
+    suite("storage subscription expired", function() {
+      var spyCall;
+
+      suiteSetup(function() {
+        clock = sinon.useFakeTimers();
+      });
+
+      suiteTeardown(function () {
+        clock.restore();
+      });
+
+      test("should log a storage subscription expired error", function() {
+        spy =  sinon.spy(RiseVision.Common.Logger, "log");
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-subscription-expired"));
+
+        params.event = "storage subscription expired";
+
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
+      });
+
+      test("should log a storage subscription expired error when done is fired", function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-subscription-expired"));
+
+        spy =  sinon.spy(RiseVision.Common.Logger, "log");
+        clock.tick(5000);
+        assert(spy.calledTwice);  // storage subscription expired + done
+
+        spyCall = RiseVision.Common.Logger.log.getCall(0);
+
+        assert.equal(spyCall.args[0], table);
+        assert.deepEqual(spyCall.args[1], params);
+      });
+
+      test("should not log a storage subscription expired error when done is fired if the error has resolved itself on a refresh", function() {
+
+        var file = "https://storage.googleapis.com/risemedialibrary-b428b4e8-c8b9-41d5-8a10-b4193c789443/Widgets%2Fvideos%2Fa_food_show.webm";
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-subscription-expired"));
+
+        // Resolve the error.
+        RiseVision.Video.onFileRefresh([file]);
+
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+
+        delete params.event_details;
+        params.event = "done";
+
+        clock.tick(5000);
+
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
+      });
+    });
+
   });
 </script>
 </body>

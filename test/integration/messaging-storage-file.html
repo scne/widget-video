@@ -66,7 +66,7 @@
       });
     });
 
-    suite("video file throttled or no storage subscription", function () {
+    suite("video file throttled", function () {
       suiteSetup(function() {
         storage.dispatchEvent(new CustomEvent("rise-storage-file-throttled", {
           "detail": null,
@@ -76,6 +76,16 @@
 
       test("should show the file unavailable message", function() {
         assert.equal(document.querySelector(".message").innerHTML, "The selected video is temporarily unavailable.", "message is correct");
+      });
+    });
+
+    suite("no storage subscription", function () {
+      suiteSetup(function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-subscription-expired"));
+      });
+
+      test("should show the storage subscription not active message", function() {
+        assert.equal(document.querySelector(".message").innerHTML, "Rise Storage subscription is not active.", "message is correct");
       });
     });
 
