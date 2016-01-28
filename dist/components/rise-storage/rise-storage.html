@@ -320,9 +320,12 @@
     /***************************************** STORAGE ******************************************/
 
     _getStorageSubscription: function() {
-      var url = "https://store-dot-rvaserver2.appspot.com/v1/company/" + this.companyid + "/product/status?pc=b0cba08a4baa0c62b8cdc621b6f6a124f89a03db";
-      this.$.storageSubscription.url = url;
-      this.$.storageSubscription.generateRequest();
+
+      if (this.companyid) {
+        var url = "https://store-dot-rvaserver2.appspot.com/v1/company/" + encodeURIComponent(this.companyid) + "/product/status?pc=b0cba08a4baa0c62b8cdc621b6f6a124f89a03db";
+        this.$.storageSubscription.url = url;
+        this.$.storageSubscription.generateRequest();
+      }
     },
 
     _handleStorageSubscriptionResponse: function(e, resp) {
