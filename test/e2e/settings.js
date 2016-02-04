@@ -33,9 +33,9 @@
       expect(element(by.css("#fileSelector button[name='customBtn']")).isPresent()).to.eventually.be.true;
       expect(element(by.css("#fileSelector storage-selector[type='single-file']")).isPresent()).to.eventually.be.true;
       expect(element(by.css("#fileSelector storage-selector[type='single-folder']")).isPresent()).to.eventually.be.true;
-      expect(element(by.css("#fileSelector div[subscription-status]")).isPresent()).to.eventually.be.true;
-      // Subscription Status component is not displayed due to company being n/a
-      expect(element(by.css("#fileSelector div[subscription-status]")).isDisplayed()).to.eventually.be.false;
+
+      expect(element(by.css("#fileSelector div[subscription-status]")).isPresent()).to.eventually.be.false;
+
     });
 
     it("Should correctly load default settings", function () {
