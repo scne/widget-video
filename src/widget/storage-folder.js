@@ -138,18 +138,18 @@ RiseVision.Video.StorageFolder = function (data) {
     storage.addEventListener("rise-cache-error", function(e) {
       var params = {
         "event": "rise cache error",
-        "event_details": "The request failed with status code: " + e.detail.error.currentTarget.status
+        "event_details": e.detail.error.message
       };
 
       RiseVision.Video.logEvent(params, true);
 
+      var statusCode = 0;
       // Show a different message if there is a 404 coming from rise cache
-      var statusCode = e.detail.error.currentTarget.status;
-
-      var errorMessage = "There was a problem retrieving the file from Rise Cache.";
-      if(statusCode === 404){
-        errorMessage = "The image does not exist or cannot be accessed.";
+      if(e.detail.error.message){
+        statusCode = +e.detail.error.message.substring(e.detail.error.message.indexOf(":")+2);
       }
+
+      var errorMessage = RiseVision.Common.Utilities.getRiseCacheErrorMessage(statusCode);
       RiseVision.Video.showError(errorMessage);
     });
 

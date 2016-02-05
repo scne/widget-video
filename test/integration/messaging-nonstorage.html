@@ -26,6 +26,7 @@
 <script src="../../node_modules/widget-tester/mocks/logger-mock.js"></script>
 
 <script src="../../src/components/widget-common/dist/config.js"></script>
+<script src="../../src/components/widget-common/dist/common.js"></script>
 <script src="../../src/components/widget-common/dist/rise-cache.js"></script>
 <script src="../../src/config/test.js"></script>
 <script src="../../src/widget/video.js"></script>
@@ -146,7 +147,14 @@
       test("should show non-storage error message for 404", function() {
         requests[1].respond(404); // HEAD request
         requests[2].respond(404); // GET request
-        assert.equal(document.querySelector(".message").innerHTML, "The image does not exist or cannot be accessed.", "message text");
+        assert.equal(document.querySelector(".message").innerHTML, "The file does not exist or cannot be accessed.", "message text");
+        assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
+      });
+
+      test("should show non-storage error message for 404", function() {
+        requests[1].respond(507); // HEAD request
+        requests[2].respond(507); // GET request
+        assert.equal(document.querySelector(".message").innerHTML, "There is not enough disk space to save the file on Rise Cache.", "message text");
         assert.isTrue((document.getElementById("messageContainer").style.display === "block"), "message visibility");
       });
 

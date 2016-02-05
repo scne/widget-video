@@ -30,6 +30,7 @@
 <script src="../../node_modules/widget-tester/mocks/logger-mock.js"></script>
 
 <script src="../../src/components/widget-common/dist/config.js"></script>
+<script src="../../src/components/widget-common/dist/common.js"></script>
 <script src="../../src/components/widget-common/dist/rise-cache.js"></script>
 <script src="../../src/config/test.js"></script>
 <script src="../../src/widget/video.js"></script>
@@ -217,14 +218,12 @@
 
       test("should handle when a rise cache error occurs", function() {
         params.event = "rise cache error";
-        params.event_details = "The request failed with status code: 0";
+        params.event_details = "The request failed with status code: 500";
 
         storage.dispatchEvent(new CustomEvent("rise-cache-error", {
            "detail": {
             "error": {
-              "currentTarget": {
-                "status": 0
-              }
+              "message": "The request failed with status code: 500"
             }},
           "bubbles": true
         }));
