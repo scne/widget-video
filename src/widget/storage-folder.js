@@ -97,6 +97,16 @@ RiseVision.Video.StorageFolder = function (data) {
 
     });
 
+    storage.addEventListener("rise-storage-api-error", function(e) {
+      var params = {
+        "event": "storage api error",
+        "event_details": "Response code: " + e.detail.code + ", message: " + e.detail.message
+      };
+
+      RiseVision.Video.logEvent(params, true);
+      RiseVision.Video.showError("Sorry, there was a problem communicating with Rise Storage.");
+    });
+
     storage.addEventListener("rise-storage-empty-folder", function () {
       var params = { "event": "storage folder empty" };
 

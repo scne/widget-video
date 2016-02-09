@@ -410,7 +410,10 @@
      */
     _processStorageResponse: function(e, resp) {
       if (resp && resp.response) {
-        if (this._isEmptyFolder(resp.response)) {
+        if (this._isAPIError(resp.response)) {
+          this.fire("rise-storage-api-error", resp.response);
+        }
+        else if (this._isEmptyFolder(resp.response)) {
           this.fire("rise-storage-empty-folder");
         }
         else if (this._noFolderExists(resp.response)) {
@@ -1008,6 +1011,13 @@
           this._loadStorage();
         }, this.refresh * 60000);
       }
+    },
+
+    /**
+     * Checks if the request has responded with a storage api error.
+     */
+    _isAPIError: function (resp) {
+      return (resp.code !== 200 && !resp.result);
     },
 
     /**

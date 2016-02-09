@@ -397,6 +397,84 @@
       });
     });
 
+    suite("storage api error", function() {
+      var spyCall;
+
+      suiteSetup(function() {
+        clock = sinon.useFakeTimers();
+      });
+
+      suiteTeardown(function () {
+        clock.restore();
+      });
+
+      test("should log a storage api error", function() {
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-api-error", {
+          "detail": {
+            "result": false,
+            "code": 500,
+            "message": "Could not retrieve Bucket Items"
+          },
+          "bubbles": true
+        }));
+
+
+        params.event = "storage api error";
+        params.event_details = "Response code: 500, message: Could not retrieve Bucket Items";
+
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
+      });
+
+      test("should log a storage api error error when done is fired", function() {
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-api-error", {
+          "detail": {
+            "result": false,
+            "code": 500,
+            "message": "Could not retrieve Bucket Items"
+          },
+          "bubbles": true
+        }));
+
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        clock.tick(5000);
+        assert(spy.calledTwice);  // storage folder doesn't exist + done
+
+        spyCall = RiseVision.Common.Logger.log.getCall(0);
+
+        assert.equal(spyCall.args[0], table);
+        assert.deepEqual(spyCall.args[1], params);
+      });
+
+      test("should not log a storage api error when done is fired if the error has resolved itself on a refresh", function() {
+        var file = "https://storage.googleapis.com/risemedialibrary-b428b4e8-c8b9-41d5-8a10-b4193c789443/Widgets%2Fvideos%2Fa_food_show.webm";
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-api-error", {
+          "detail": {
+            "result": false,
+            "code": 500,
+            "message": "Could not retrieve Bucket Items"
+          },
+          "bubbles": true
+        }));
+
+        // Resolve the error.
+        RiseVision.Video.onFileRefresh([file]);
+
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        delete params.event_details;
+        params.event = "done";
+
+        clock.tick(5000);
+
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
+      });
+    });
+
   });
 </script>
 </body>
