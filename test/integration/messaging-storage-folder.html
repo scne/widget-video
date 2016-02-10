@@ -103,6 +103,23 @@
       });
     });
 
+    suite("storage api error", function () {
+      suiteSetup(function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-api-error", {
+          "detail": {
+            "result": false,
+            "code": 500,
+            "message": "Could not retrieve Bucket Items"
+          },
+          "bubbles": true
+        }));
+      });
+
+      test("should show the storage api error message", function() {
+        assert.equal(document.querySelector(".message").innerHTML, "Sorry, there was a problem communicating with Rise Storage.", "message is correct");
+      });
+    });
+
     suite("normal storage response", function() {
       suiteSetup(function() {
         storage.dispatchEvent(new CustomEvent("rise-storage-response", {

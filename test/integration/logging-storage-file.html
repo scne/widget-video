@@ -324,6 +324,75 @@
         assert(spy.calledWith(table, params));
       });
     });
+
+    suite("storage api error", function() {
+      var spyCall;
+
+      test("should log a storage api error", function() {
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-api-error", {
+          "detail": {
+            "result": false,
+            "code": 500,
+            "message": "Could not retrieve Bucket Items"
+          },
+          "bubbles": true
+        }));
+
+        params.event = "storage api error";
+        params.event_details = "Response code: 500, message: Could not retrieve Bucket Items";
+
+        assert(spy.calledOnce, "called once");
+        assert(spy.calledWith(table, params));
+      });
+
+      test("should log a storage api error when done is fired", function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-api-error", {
+          "detail": {
+            "result": false,
+            "code": 500,
+            "message": "Could not retrieve Bucket Items"
+          },
+          "bubbles": true
+        }));
+
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        clock.tick(5000);
+        assert(spy.calledTwice);  // storage file not found + done
+
+        spyCall = RiseVision.Common.Logger.log.getCall(0);
+
+        assert.equal(spyCall.args[0], table);
+        assert.deepEqual(spyCall.args[1], params);
+      });
+
+      test("should not log a storage api error when done is fired if the error has resolved itself on a refresh", function() {
+        storage.dispatchEvent(new CustomEvent("rise-storage-api-error", {
+          "detail": {
+            "result": false,
+            "code": 500,
+            "message": "Could not retrieve Bucket Items"
+          },
+          "bubbles": true
+        }));
+
+        // Resolve the error.
+        RiseVision.Video.onFileRefresh(window.gadget.settings.additionalParams.selector.url);
+
+        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        params.event = "done";
+        params.file_url = window.gadget.settings.additionalParams.selector.url;
+        params.file_format = "webm";
+        delete params.event_details;
+
+        clock.tick(5000);
+
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
+      });
+
+    });
   });
 </script>
 </body>

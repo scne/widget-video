@@ -194,6 +194,27 @@
           "showError() called with correct message");
       });
 
+      test("should handle when 'storage api' error occurs", function() {
+        params.event = "storage api error";
+        params.event_details = "Response code: 500, message: Could not retrieve Bucket Items";
+        delete params.file_url;
+
+        storage.dispatchEvent(new CustomEvent("rise-storage-api-error", {
+          "detail": {
+            "result": false,
+            "code": 500,
+            "message": "Could not retrieve Bucket Items"
+          },
+          "bubbles": true
+        }));
+
+        assert(onLogEventStub.calledOnce, "logEvent() called once");
+        assert(onLogEventStub.calledWith(params, true), "logEvent() called with correct params");
+        assert(onShowErrorStub.calledOnce, "showError() called once");
+        assert(onShowErrorStub.calledWith("Sorry, there was a problem communicating with Rise Storage."),
+          "showError() called with correct message");
+      });
+
       test("should handle when a rise storage error occurs", function() {
         params.event = "rise storage error";
         params.event_details = "The request failed with status code: 0";
