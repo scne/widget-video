@@ -411,6 +411,7 @@
     _processStorageResponse: function(e, resp) {
       if (resp && resp.response) {
         if (this._isAPIError(resp.response)) {
+          this._startTimer();
           this.fire("rise-storage-api-error", resp.response);
         }
         else if (this._isEmptyFolder(resp.response)) {
