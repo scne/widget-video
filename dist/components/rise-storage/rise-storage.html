@@ -170,10 +170,19 @@
      * The flag for making a get request if it wasn't done yet.
      *
      * @property _hasAttemptedGetRequest
-     * @type string
+     * @type boolean
      * @default false
      */
     _hasAttemptedGetRequest: false,
+
+    /**
+     * The flag for making a second storage request if it wasn't done yet.
+     *
+     * @property _hasAttemptedSecondStorageRequest
+     * @type boolean
+     * @default false
+     */
+    _hasAttemptedSecondStorageRequest: false,
 
     /**
      * The URL target of the Cache request.
@@ -335,6 +344,7 @@
           this.fire("rise-storage-subscription-expired");
         } else {
           this._computeStorageUrl();
+          this._hasAttemptedSecondStorageRequest = false;
           this._loadStorage();
         }
       }
@@ -411,8 +421,11 @@
     _processStorageResponse: function(e, resp) {
       if (resp && resp.response) {
         if (this._isAPIError(resp.response)) {
-          this._startTimer();
-          this.fire("rise-storage-api-error", resp.response);
+          var fireError = this._handleStorageErrorWithRetry();
+          if (fireError) {
+            this._startTimer();
+            this.fire("rise-storage-api-error", resp.response);
+          }
         }
         else if (this._isEmptyFolder(resp.response)) {
           this.fire("rise-storage-empty-folder");
@@ -473,34 +486,51 @@
     },
 
     /**
+     * Retry the storage request one more time if it fails and attempt to load file from cache
+     */
+    _handleStorageErrorWithRetry: function() {
+
+      var fireError = true;
+
+      if ( !this._hasAttemptedSecondStorageRequest ) {
+        this._hasAttemptedSecondStorageRequest = true;
+        this._loadStorage();
+        fireError = false;
+      }
+      else {
+        if (!this._isLoading && this._isCacheRunning && !this._fileThrottled) {
+          // storage request initiated from a refresh, Rise Cache is running, and no flag of previous file being throttled
+
+          if (this._isFile) {
+            fireError = false;
+
+            // proceed with getting file from Rise Cache
+            this._getFileFromCache();
+          }
+          else {
+            // folder files
+            if (this._folderFilesToRequest.length > 0) {
+              fireError = false;
+
+              // reset the request list/count
+              this._folderFilesRequested = 0;
+
+              // request the first folder file in the list to get cycle started
+              this._requestCacheFolderFile(this._folderFilesToRequest[0]);
+            }
+          }
+        }
+      }
+
+      return fireError;
+    },
+
+    /**
      * Fires when an error is received from the Storage request.
      */
     _handleStorageError: function(e, resp) {
-      var fireError = true;
 
-      if (!this._isLoading && this._isCacheRunning && !this._fileThrottled) {
-        // storage request initiated from a refresh, Rise Cache is running, and no flag of previous file being throttled
-
-        if (this._isFile) {
-          fireError = false;
-
-          // proceed with getting file from Rise Cache
-          this._getFileFromCache();
-        }
-        else {
-          // folder files
-          if (this._folderFilesToRequest.length > 0) {
-            fireError = false;
-
-            // reset the request list/count
-            this._folderFilesRequested = 0;
-
-            // request the first folder file in the list to get cycle started
-            this._requestCacheFolderFile(this._folderFilesToRequest[0]);
-          }
-        }
-
-      }
+      var fireError = this._handleStorageErrorWithRetry();
 
       if (fireError) {
         this._startTimer();
@@ -1009,6 +1039,7 @@
         this.refresh = (this.refresh < 5) ? 5 : this.refresh;
 
         this.debounce("refresh", function() {
+          this._hasAttemptedSecondStorageRequest = false;
           this._loadStorage();
         }, this.refresh * 60000);
       }
@@ -1264,6 +1295,7 @@
         }
         else if(event.data.type === "storage-target-changed") {
           if(event.data.targets && event.data.targets.some(targetMatches)) {
+            self._hasAttemptedSecondStorageRequest = false;
             self._loadStorage();
           }
         }
