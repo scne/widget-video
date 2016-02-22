@@ -881,6 +881,10 @@
 
       if (resp && resp.xhr) {
         file.url = resp.xhr.responseURL;
+        // Fallback to browsers that does not support responseURL.
+        if(!file.url){
+          file.url = resp.xhr.getResponseHeader("Location");
+        }
         lastModified = resp.xhr.getResponseHeader("Last-Modified");
 
         // Extract the URL from the query string parameter.
