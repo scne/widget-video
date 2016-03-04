@@ -265,7 +265,7 @@ RiseVision.Video = (function (gadgets) {
     // show wait message while Storage initializes
     _message.show("Please wait while your video is downloaded.");
 
-    _frameController = new RiseVision.Common.Video.FrameController();
+    _frameController = new RiseVision.Video.FrameController();
 
     if (_mode === "file") {
       isStorageFile = (Object.keys(_additionalParams.storage).length !== 0);

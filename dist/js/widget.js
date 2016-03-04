@@ -300,7 +300,8 @@ RiseVision.Common.Utilities = (function() {
   }
 
   function loadGoogleFont(family, contentDoc) {
-    var stylesheet = document.createElement("link");
+    var stylesheet = document.createElement("link"),
+      familyVal;
 
     contentDoc = contentDoc || document;
 
@@ -308,7 +309,12 @@ RiseVision.Common.Utilities = (function() {
     stylesheet.setAttribute("type", "text/css");
 
     // split to account for family value containing a fallback (eg. Aladin,sans-serif)
-    stylesheet.setAttribute("href", "https://fonts.googleapis.com/css?family=" + family.split(",")[0]);
+    familyVal = family.split(",")[0];
+
+    // strip possible single quotes
+    familyVal = familyVal.replace(/'/g, "");
+
+    stylesheet.setAttribute("href", "https://fonts.googleapis.com/css?family=" + familyVal);
 
     if (stylesheet !== null) {
       contentDoc.getElementsByTagName("head")[0].appendChild(stylesheet);
@@ -482,8 +488,24 @@ RiseVision.Common.RiseCache = (function () {
 
   }
 
+  function isRiseCacheRunning(callback) {
+    if (!callback || typeof callback !== "function") {
+      return;
+    }
+
+    if (!_pingReceived) {
+      /* jshint validthis: true */
+      return this.ping(function () {
+        callback(_isCacheRunning);
+      });
+    } else {
+      callback(_isCacheRunning);
+    }
+  }
+
   return {
     getFile: getFile,
+    isRiseCacheRunning: isRiseCacheRunning,
     ping: ping
   };
 
@@ -768,7 +790,7 @@ RiseVision.Video = (function (gadgets) {
     // show wait message while Storage initializes
     _message.show("Please wait while your video is downloaded.");
 
-    _frameController = new RiseVision.Common.Video.FrameController();
+    _frameController = new RiseVision.Video.FrameController();
 
     if (_mode === "file") {
       isStorageFile = (Object.keys(_additionalParams.storage).length !== 0);
@@ -1231,11 +1253,9 @@ RiseVision.Video.NonStorage = function (data) {
 };
 
 var RiseVision = RiseVision || {};
-RiseVision.Common = RiseVision.Common || {};
+RiseVision.Video = RiseVision.Video || {};
 
-RiseVision.Common.Video = RiseVision.Common.Video || {};
-
-RiseVision.Common.Video.FrameController = function () {
+RiseVision.Video.FrameController = function () {
   "use strict";
 
   var PREFIX = "if_";

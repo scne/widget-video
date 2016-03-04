@@ -1,7 +1,7 @@
 (function (window) {
   "use strict";
 
-  window.RiseVision.Common.Video.FrameController = function() {
+  window.RiseVision.Video.FrameController = function() {
     return {
       add: function(index) {
         var frameContainer = this.getFrameContainer(index),
