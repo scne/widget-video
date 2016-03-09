@@ -35,7 +35,9 @@
       "./src/settings.html",
       "./src/widget.html",
       "./src/player-file.html",
-      "./src/player-folder.html"
+      "./src/player-file-cache.html",
+      "./src/player-folder.html",
+      "./src/player-folder-cache.html"
     ];
 
   gulp.task("clean-bower", function(cb){

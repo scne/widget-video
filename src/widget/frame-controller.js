@@ -24,14 +24,14 @@ RiseVision.Video.FrameController = function () {
     return null;
   }
 
-  function _clear(index) {
+  function _clear(index, origin) {
     var frameContainer = getFrameContainer(index),
       frameObj = getFrameObject(index),
       iframe;
 
     if (frameObj) {
       iframe = frameContainer.querySelector("iframe");
-      frameObj.remove();
+      frameObj.postMessage({event: "remove"}, origin);
       iframe.setAttribute("src", "about:blank");
     }
   }
@@ -47,7 +47,7 @@ RiseVision.Video.FrameController = function () {
     frameContainer.appendChild(iframe);
   }
 
-  function createFramePlayer(index, params, files, skin, src) {
+  function createFramePlayer(index, params, files, skin, src, origin) {
     var frameContainer = getFrameContainer(index),
       frameObj = getFrameObject(index),
       iframe;
@@ -59,8 +59,7 @@ RiseVision.Video.FrameController = function () {
         iframe.onload = null;
 
         // initialize and load the player inside the iframe
-        frameObj.init(params, files, skin);
-        frameObj.load();
+        frameObj.postMessage({event: "init", params: params, files: files, skin: skin}, origin);
       };
 
       iframe.setAttribute("src", src);
@@ -74,10 +73,10 @@ RiseVision.Video.FrameController = function () {
     frameContainer.style.visibility = "hidden";
   }
 
-  function remove(index, callback) {
+  function remove(index, origin, callback) {
     var frameContainer = document.getElementById(PREFIX + index);
 
-    _clear(index);
+    _clear(index, origin);
 
     setTimeout(function () {
       // remove the iframe by clearing all elements inside div container

@@ -57,12 +57,3 @@ function getPlaylist (list) {
 
   return playlist;
 }
-
-function getPlaybackData() {
-  return {
-    total: files.length,
-    index: player.getCurrentIndex(),
-    duration: player.getDuration(),
-    position: player.getPosition()
-  }
-}
