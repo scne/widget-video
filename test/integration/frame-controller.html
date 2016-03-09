@@ -20,7 +20,9 @@
 
 <script>
 
-  var frameController = new RiseVision.Video.FrameController();
+  var frameController = new RiseVision.Video.FrameController(),
+    // expected origin when integration tests running
+    expectedFrameOrigin = "http://localhost:8080";
 
   suite("Initialization", function () {
 
@@ -51,7 +53,7 @@
         done();
       });
 
-      frameController.createFramePlayer(0, {}, [], "", "../../test/data/frame-controller-source.html");
+      frameController.createFramePlayer(0, {}, [], "", "../../test/data/frame-controller-source.html", expectedFrameOrigin);
     });
 
     test("should return iframe content document", function () {
@@ -87,7 +89,7 @@
     });
 
     test("should remove an iframe from container based on index", function(done) {
-      frameController.remove(0, function () {
+      frameController.remove(0, expectedFrameOrigin, function () {
         assert.isNull(frameController.getFrameObject(0));
         done();
       });

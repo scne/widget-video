@@ -26,29 +26,3 @@ describe("configure()", function() {
 
 });
 
-describe("getPlaybackData()", function() {
-
-  var params, urls, skin;
-
-  beforeEach(function () {
-    params = {width: 1024, height: 768, video: {scaleToFit: true, volume: 50, controls: true, autoplay: true, pause: 10}};
-
-    urls = "https://storage.googleapis.com/risemedialibrary-abc123/Widgets%2Ftest.webm";
-
-    skin = "";
-  });
-
-  it("should return an object with correct properties", function () {
-    init(params, urls, skin);
-
-    sinon.stub(player, "getDuration", function () {});
-    sinon.stub(player, "getPosition", function () {});
-
-    expect(getPlaybackData()).to.include.keys("duration", "position");
-
-    player.getDuration.restore();
-    player.getPosition.restore();
-  });
-
-});
-
