@@ -31,7 +31,8 @@
 <script src="../../src/config/test.js"></script>
 <script src="../../src/widget/video.js"></script>
 <script src="../../src/widget/non-storage.js"></script>
-<script src="../../src/components/widget-common/dist/video.js"></script>
+<script src="../../src/widget/window-controller.js"></script>
+<script src="../../src/widget/frame-controller.js"></script>
 <script src="../../src/components/widget-common/dist/message.js"></script>
 
 <script src="../mocks/FrameController.js"></script>
@@ -39,7 +40,7 @@
 
 <script>
   suite("logging", function() {
-    var spy, clock, logStub,
+    var spy, clock,
       table = "video_events",
       params = {
         "event": "play",
@@ -48,81 +49,70 @@
         "company_id": '"companyId"',
         "display_id": '"displayId"'
       },
-      paramsStub, configLogCall;
+      paramsStub;
 
     paramsStub = sinon.stub(RiseVision.Video, "setAdditionalParams", function (params, mode) {
       // need to enforce the fake timer clock before any of the code within setAdditionalParams is executed
       clock = sinon.useFakeTimers();
 
       // spy on log call
-      spy = sinon.spy(RiseVision.Common.Logger, "log");
+      spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
       // restore the function
       paramsStub.restore();
       // call it again with the params
       RiseVision.Video.setAdditionalParams(params, mode);
-      // capture the configuration log args
-      configLogCall = RiseVision.Common.Logger.log.getCall(0);
-    });
-
-    setup(function() {
-      RiseVision.Video.onFileInit(params.file_url);
     });
 
     teardown(function() {
       clock.restore();
+      RiseVision.Common.LoggerUtils.logEvent.restore();
     });
 
     suite("configuration", function () {
 
-      teardown(function() {
-        RiseVision.Common.Logger.log.restore();
-      });
-
       test("should log the configuration event", function () {
 
-        assert.equal(configLogCall.args[0], table);
-        assert.deepEqual(configLogCall.args[1], {
-          "event": "configuration",
-          "event_details": "custom",
-          "file_url": null,
-          "company_id": params.company_id,
-          "display_id": params.display_id
-        });
-
-      });
-    });
-
-    suite("play", function() {
-      setup(function() {
-        logStub = sinon.stub(RiseVision.Common.Logger, "log");
-      });
-
-      teardown(function() {
-        logStub.restore();
-      });
-
-      test("should log the play event", function() {
-        RiseVision.Video.play();
-
-        assert(logStub.calledOnce);
-        assert(logStub.calledWith(table, params));
-      });
-
-      test("should not log the configuration event", function () {
-        RiseVision.Video.play();
-
-        assert(logStub.neverCalledWith(table, {
+        assert(spy.calledWith(table, {
           "event": "configuration",
           "event_details": "custom",
           "file_url": null,
           "company_id": params.company_id,
           "display_id": params.display_id
         }));
+
       });
     });
 
+    suite("play", function() {
+
+      test("should not log the configuration event", function () {
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
+
+        RiseVision.Video.play();
+
+        assert(spy.neverCalledWith(table, {
+          "event": "configuration",
+          "event_details": "custom",
+          "file_format": "webm",
+          "file_url": "http://s3.amazonaws.com/stu-testing/sample_videos/big-buck-bunny_trailer.webm",
+          "company_id": params.company_id,
+          "display_id": params.display_id
+        }));
+      });
+
+      test("should log the play event", function() {
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
+
+        RiseVision.Video.play();
+
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
+      });
+
+    });
+
     suite("player error", function() {
-      var playStub, spyCall, spyObj, paramsObj;
+      var playStub;
 
       suiteSetup(function() {
         // Stub the play function to prevent it from logging events.
@@ -134,49 +124,49 @@
         clock.restore();
       });
 
-      setup(function() {
-        logStub = sinon.stub(RiseVision.Common.Logger, "log");
-      });
-
-      teardown(function() {
-        logStub.restore();
-      });
-
       test("should log a player error", function() {
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
+
         params.event = "player error";
         params.event_details = null;
 
         RiseVision.Video.playerError();
 
-        assert(logStub.calledOnce);
-        assert(logStub.calledWith(table, params));
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
       });
 
       test("should log a player error with an error type", function() {
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
+
         params.event_details = "setup";
 
         RiseVision.Video.playerError({ "type": params.event_details });
 
-        assert(logStub.calledOnce);
-        assert(logStub.calledWith(table, params));
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
       });
 
       test("should log a player error with an error message", function() {
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
+
         params.event_details = "Error loading player: No media sources found";
 
         RiseVision.Video.playerError({ "message": params.event_details });
 
-        assert(logStub.calledOnce);
-        assert(logStub.calledWith(table, params));
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
       });
 
       test("should log a player error with an error type and message", function() {
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
+
         params.event_details = "setup - Error loading player: No media sources found";
 
         RiseVision.Video.playerError({ "type": "setup", "message": "Error loading player: No media sources found" });
 
-        assert(logStub.calledOnce);
-        assert(logStub.calledWith(table, params));
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
       });
 
       test("should not log a player error when done is fired if the error has resolved itself on a refresh", function() {
@@ -187,25 +177,14 @@
         RiseVision.Video.onFileRefresh(params.file_url);
 
         // Force done to fire again.
-        logStub.restore();
-        logStub = sinon.stub(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
         RiseVision.Video.playerEnded();
 
         params.event = "done";
         delete params.event_details;  // No event_details for a done event.
 
-        // done
-        spyCall = RiseVision.Common.Logger.log.getCall(0);
-        spyObj = spyCall.args[1];
-        paramsObj = JSON.parse(JSON.stringify(params));
-
-        // remove the file_url property so a deep comparison of the rest of the object can be done next
-        delete spyObj.file_url;
-        delete paramsObj.file_url;
-
-        assert(logStub.calledOnce);
-        assert.equal(spyCall.args[0], table, "called with correct table name");
-        assert.deepEqual(spyObj, paramsObj, "called with correct additional params");
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
       });
 
       test("should log a player error when done is fired", function() {
@@ -217,27 +196,16 @@
 
         // Force "done" to fire by simulating a player error.
         RiseVision.Video.playerError({ "type": "setup", "message": "Error loading player: No media sources found" });
-        logStub.restore();
-        logStub = sinon.stub(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
         clock.tick(5000);
 
-        // player error
-        spyCall = RiseVision.Common.Logger.log.getCall(0);
-        spyObj = spyCall.args[1];
-        paramsObj = JSON.parse(JSON.stringify(params));
-
-        // remove the file_url property so a deep comparison of the rest of the object can be done next
-        delete spyObj.file_url;
-        delete paramsObj.file_url;
-
-        assert(logStub.calledTwice);  // player error + done
-        assert.equal(spyCall.args[0], table, "called with correct table name");
-        assert.deepEqual(spyObj, paramsObj, "called with correct additional params");
+        assert(spy.calledTwice); // player error + done
+        assert(spy.calledWith(table, params));
       });
     });
 
     suite("done", function() {
-      var playStub, spyCall, spyObj, paramsObj;
+      var playStub;
 
       suiteSetup(function() {
         // Stub the play function to prevent it from logging events.
@@ -252,26 +220,14 @@
       test("should log the done event", function() {
         // Force "done" to fire by simulating a player error.
         RiseVision.Video.playerError();
-        logStub = sinon.stub(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
         clock.tick(5000);
 
         params.event = "done";
         delete params.event_details;  // No event_details for a done event.
 
-        // done
-        spyCall = RiseVision.Common.Logger.log.getCall(1);
-        spyObj = spyCall.args[1];
-        paramsObj = JSON.parse(JSON.stringify(params));
-
-        // remove the file_url property so a deep comparison of the rest of the object can be done next
-        delete spyObj.file_url;
-        delete paramsObj.file_url;
-
-        assert.equal(logStub.callCount, 2, "called twice");  // player error + done
-        assert.equal(spyCall.args[0], table, "called with correct table name");
-        assert.deepEqual(spyObj, paramsObj, "called with correct additional params");
-
-        logStub.restore();
+        assert(spy.calledTwice); // player error + done
+        assert(spy.calledWith(table, params));
       });
     });
 
@@ -300,7 +256,7 @@
       });
 
       test("should log a non-storage error", function() {
-        logStub = sinon.stub(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
 
         params.event = "non-storage error";
         params.event_details = "The request failed with status code: 0";
@@ -310,10 +266,8 @@
         requests[1].respond(0); // HEAD request
         requests[2].respond(0); // GET request
 
-        assert(logStub.calledOnce);
-        assert(logStub.calledWith(table, params));
-
-        logStub.restore();
+        assert(spy.calledOnce);
+        assert(spy.calledWith(table, params));
       });
     });
   });

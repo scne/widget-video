@@ -3,25 +3,37 @@ var width, height, skin;
 
 var player = null;
 
+var source = null,
+  origin = null;
+
 // OVERRIDE: method to distinguish configurations between file and folder
 function configure(urls){}
 
 function doneEvent() {
-  if (window.parent !== window.top) {
-    parent.RiseVision.Video.playerEnded();
-  }
+  source.postMessage({
+    event: "playerEnded"
+  }, origin);
 }
 
 function readyEvent() {
-  if (window.parent !== window.top) {
-    parent.RiseVision.Video.playerReady();
-  }
+  source.postMessage({
+    event: "playerReady"
+  }, origin);
+
 }
 
 function errorEvent(data) {
-  if (window.parent !== window.top) {
-    parent.RiseVision.Video.playerError(data);
-  }
+  source.postMessage({
+    event: "playerError",
+    error: data
+  }, origin);
+}
+
+function playlistItemEvent(index) {
+  source.postMessage({
+    event: "playerItemChange",
+    index: index
+  }, origin);
 }
 
 function init(params, urls, skinVal) {
@@ -97,9 +109,6 @@ function getVideoFileType (url) {
   return type;
 }
 
-// OVERRIDE: method to retrieve data about file or currently played file from folder
-function getPlaybackData() {}
-
 // inherit from playerJW for a customized file or folder player
 var playerJW = function (setupObj) {
   "use strict";
@@ -126,6 +135,10 @@ var playerJW = function (setupObj) {
 
       }, pauseDuration * 1000);
     }
+  }
+
+  function _onPlaylistItem(index) {
+    playlistItemEvent(index);
   }
 
   function onPlayerError(error) {
@@ -172,6 +185,11 @@ var playerJW = function (setupObj) {
         // folder, listen for playlist complete event
         jwplayer().onPlaylistComplete(function () {
           _onComplete();
+        });
+
+        // folder, listen for when a playlist item changes
+        jwplayer().onPlaylistItem(function (data) {
+          _onPlaylistItem(data.index);
         });
       }
       else if (setupObj.hasOwnProperty("file")) {
@@ -264,3 +282,37 @@ var playerJW = function (setupObj) {
     remove: remove
   }
 };
+
+window.addEventListener("message", function(event) {
+  origin = event.origin || event.originalEvent.origin;
+
+  // ensure this message is coming from Amazon S3 (widget) or preview app (local widget)
+  if (origin !== "http://s3.amazonaws.com" && origin !== "http://localhost:8000") {
+    origin = null;
+    return;
+  }
+
+  source = event.source;
+
+  if (event.data && typeof event.data === "object" && event.data.event) {
+    switch (event.data.event) {
+      case "init" :
+        init(event.data.params, event.data.files, event.data.skin);
+        load();
+
+        break;
+      case "play":
+        play();
+        break;
+      case "pause":
+        pause();
+        break;
+      case "stop":
+        stop();
+        break;
+      case "remove":
+        remove();
+        break;
+    }
+  }
+});

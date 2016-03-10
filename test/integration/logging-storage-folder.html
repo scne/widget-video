@@ -35,7 +35,8 @@
 <script src="../../src/config/test.js"></script>
 <script src="../../src/widget/video.js"></script>
 <script src="../../src/widget/storage-folder.js"></script>
-<script src="../../src/components/widget-common/dist/video.js"></script>
+<script src="../../src/widget/window-controller.js"></script>
+<script src="../../src/widget/frame-controller.js"></script>
 <script src="../../src/components/widget-common/dist/message.js"></script>
 <script src="../mocks/FrameController.js"></script>
 <script src="../../src/widget/main.js"></script>
@@ -51,17 +52,15 @@
         "file_url": null,
         "company_id": '"companyId"',
         "display_id": '"displayId"'
-      }, paramsStub, configLogCall;
+      }, paramsStub;
 
     paramsStub = sinon.stub(RiseVision.Video, "setAdditionalParams", function (params, mode) {
       // spy on log call
-      spy = sinon.spy(RiseVision.Common.Logger, "log");
+      spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
       // restore the function
       paramsStub.restore();
       // call it again with the params
       RiseVision.Video.setAdditionalParams(params, mode);
-      // capture the configuration log args
-      configLogCall = RiseVision.Common.Logger.log.getCall(0);
     });
 
     sinon.stub(storage.$.ping, "generateRequest", function () {
@@ -79,21 +78,20 @@
     });
 
     teardown(function() {
-      RiseVision.Common.Logger.log.restore();
+      RiseVision.Common.LoggerUtils.logEvent.restore();
     });
 
     suite("configuration", function () {
 
       test("should log the configuration event", function () {
 
-        assert.equal(configLogCall.args[0], table);
-        assert.deepEqual(configLogCall.args[1], {
+        assert(spy.calledWith(table, {
           "event": "configuration",
           "event_details": "storage folder",
           "file_url": params.file_url,
           "company_id": params.company_id,
           "display_id": params.display_id
-        });
+        }));
 
       });
     });
@@ -102,7 +100,7 @@
       var spyCall;
 
       test("should log a storage folder empty error", function() {
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
 
         storage.dispatchEvent(new CustomEvent("rise-storage-empty-folder", {
           "detail": null,
@@ -119,14 +117,11 @@
           "bubbles": true
         }));
 
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
         clock.tick(5000);
-        assert(spy.calledTwice);  // storage folder empty + done
 
-        spyCall = RiseVision.Common.Logger.log.getCall(0);
-
-        assert.equal(spyCall.args[0], table);
-        assert.deepEqual(spyCall.args[1], params);
+        assert(spy.calledTwice); // storage folder empty + done
+        assert(spy.calledWith(table, params));
       });
 
       test("should not log a storage folder empty error when done is fired if the error has resolved itself on a refresh", function() {
@@ -140,12 +135,10 @@
         // Resolve the error.
         RiseVision.Video.onFileRefresh([file]);
 
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
         params.event = "done";
 
         clock.tick(5000);
-
-        spyCall = RiseVision.Common.Logger.log.getCall(0);
 
         assert(spy.calledOnce);
         assert(spy.calledWith(table, params));
@@ -156,7 +149,7 @@
       var spyCall;
 
       test("should log a rise storage error", function() {
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
 
         storage.dispatchEvent(new CustomEvent("rise-storage-error", {
           "detail": {
@@ -186,15 +179,11 @@
           "bubbles": true
         }));
 
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
         clock.tick(5000);
 
         assert(spy.calledTwice);  // rise storage error + done
-
-        spyCall = RiseVision.Common.Logger.log.getCall(0);
-
-        assert.equal(spyCall.args[0], table);
-        assert.deepEqual(spyCall.args[1], params);
+        assert(spy.calledWith(table, params));
       });
 
       test("should not log a rise storage error when done is fired if the error has resolved itself on a refresh", function() {
@@ -213,7 +202,7 @@
         // Resolve the error.
         RiseVision.Video.onFileRefresh([file]);
 
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
 
         params.event = "done";
         delete params.event_details;  // No event_details for a done event.
@@ -225,7 +214,7 @@
       });
 
       test("should log a rise cache error", function() {
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
 
         storage.dispatchEvent(new CustomEvent("rise-cache-error", {
           "detail": {
@@ -247,7 +236,7 @@
       var spyCall;
 
       test("should log a storage folder doesn't exist error", function() {
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
         var filePath = window.gadget.settings.additionalParams.storage.folder;
 
         storage.dispatchEvent(new CustomEvent("rise-storage-no-folder", {
@@ -271,14 +260,10 @@
           "bubbles": true
         }));
 
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
         clock.tick(5000);
         assert(spy.calledTwice);  // storage folder doesn't exist + done
-
-        spyCall = RiseVision.Common.Logger.log.getCall(0);
-
-        assert.equal(spyCall.args[0], table);
-        assert.deepEqual(spyCall.args[1], params);
+        assert(spy.calledWith(table, params));
       });
 
       test("should not log a storage folder doesn't exist error when done is fired if the error has resolved itself on a refresh", function() {
@@ -292,7 +277,7 @@
         // Resolve the error.
         RiseVision.Video.onFileRefresh([file]);
 
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
         delete params.event_details;
         params.event = "done";
 
@@ -307,7 +292,7 @@
       var spyCall;
 
       test("should log a storage folder format(s) invalid error", function() {
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
         var filePath = window.gadget.settings.additionalParams.storage.folder;
 
         storage.dispatchEvent(new CustomEvent("rise-storage-folder-invalid", {
@@ -329,14 +314,10 @@
           "bubbles": true
         }));
 
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
         clock.tick(5000);
         assert(spy.calledTwice);  // storage folder doesn't exist + done
-
-        spyCall = RiseVision.Common.Logger.log.getCall(0);
-
-        assert.equal(spyCall.args[0], table);
-        assert.deepEqual(spyCall.args[1], params);
+        assert(spy.calledWith(table, params));
       });
 
     });
@@ -353,7 +334,7 @@
       });
 
       test("should log a storage subscription expired error", function() {
-        spy =  sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
 
         storage.dispatchEvent(new CustomEvent("rise-storage-subscription-expired"));
 
@@ -366,14 +347,10 @@
       test("should log a storage subscription expired error when done is fired", function() {
         storage.dispatchEvent(new CustomEvent("rise-storage-subscription-expired"));
 
-        spy =  sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
         clock.tick(5000);
         assert(spy.calledTwice);  // storage subscription expired + done
-
-        spyCall = RiseVision.Common.Logger.log.getCall(0);
-
-        assert.equal(spyCall.args[0], table);
-        assert.deepEqual(spyCall.args[1], params);
+        assert(spy.calledWith(table, params));
       });
 
       test("should not log a storage subscription expired error when done is fired if the error has resolved itself on a refresh", function() {
@@ -385,7 +362,7 @@
         // Resolve the error.
         RiseVision.Video.onFileRefresh([file]);
 
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
 
         delete params.event_details;
         params.event = "done";
@@ -409,7 +386,7 @@
       });
 
       test("should log a storage api error", function() {
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
 
         storage.dispatchEvent(new CustomEvent("rise-storage-api-error", {
           "detail": {
@@ -439,14 +416,10 @@
           "bubbles": true
         }));
 
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
         clock.tick(5000);
         assert(spy.calledTwice);  // storage folder doesn't exist + done
-
-        spyCall = RiseVision.Common.Logger.log.getCall(0);
-
-        assert.equal(spyCall.args[0], table);
-        assert.deepEqual(spyCall.args[1], params);
+        assert(spy.calledWith(table, params));
       });
 
       test("should not log a storage api error when done is fired if the error has resolved itself on a refresh", function() {
@@ -464,7 +437,7 @@
         // Resolve the error.
         RiseVision.Video.onFileRefresh([file]);
 
-        spy = sinon.spy(RiseVision.Common.Logger, "log");
+        spy = sinon.spy(RiseVision.Common.LoggerUtils, "logEvent");
         delete params.event_details;
         params.event = "done";
 

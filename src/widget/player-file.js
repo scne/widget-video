@@ -17,10 +17,3 @@ function configure(urls){
 
   player = filePlayer();
 }
-
-function getPlaybackData() {
-  return {
-    duration: player.getDuration(),
-    position: player.getPosition()
-  }
-}

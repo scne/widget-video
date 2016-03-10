@@ -3,7 +3,7 @@
 var RiseVision = RiseVision || {};
 RiseVision.Video = {};
 
-RiseVision.Video = (function (gadgets) {
+RiseVision.Video = (function (window, gadgets) {
   "use strict";
 
   var _additionalParams, _mode;
@@ -15,7 +15,8 @@ RiseVision.Video = (function (gadgets) {
     _storage = null,
     _nonStorage = null,
     _message = null,
-    _frameController = null;
+    _frameController = null,
+    _windowController = null;
 
   var _viewerPaused = true;
 
@@ -24,6 +25,8 @@ RiseVision.Video = (function (gadgets) {
   var _currentFrame = 0;
 
   var _currentFiles = [];
+
+  var _currentPlaylistIndex = null;
 
   var _errorLog = null,
     _errorTimer = null,
@@ -64,29 +67,15 @@ RiseVision.Video = (function (gadgets) {
     }, 5000);
   }
 
-  function _getCurrentFileData() {
-    var frameObj = _frameController.getFrameObject(_currentFrame);
-
-    if (frameObj) {
-      return frameObj.getPlaybackData();
-    }
-
-    return null;
-  }
-
   function _getCurrentFile() {
-    var fileData = null;
-
     if (_currentFiles && _currentFiles.length > 0) {
       if (_mode === "file") {
         return _currentFiles[0];
       }
       else if (_mode === "folder") {
-        // retrieve the currently played file info from player
-        fileData = _getCurrentFileData();
-
-        if (fileData) {
-          return _currentFiles[fileData.index];
+        // retrieve the currently played file
+        if (_currentPlaylistIndex) {
+          return _currentFiles[_currentPlaylistIndex];
         }
       }
     }
@@ -107,7 +96,8 @@ RiseVision.Video = (function (gadgets) {
 
     _message.show(message);
 
-    _frameController.remove(_currentFrame, function () {
+    _currentPlaylistIndex = null;
+    _frameController.remove(_currentFrame, _windowController.getFrameOrigin(), function () {
       // if Widget is playing right now, run the timer
       if (!_viewerPaused) {
         _startErrorTimer();
@@ -169,17 +159,19 @@ RiseVision.Video = (function (gadgets) {
     if (frameObj) {
       // Destroy player iframe.
       if (!_resume) {
-        _frameController.remove(_currentFrame);
+        _currentPlaylistIndex = null;
+        _frameController.remove(_currentFrame, _windowController.getFrameOrigin());
       }
       else {
-        frameObj.pause();
+        frameObj.postMessage({event: "pause"}, _windowController.getFrameOrigin());
       }
     }
   }
 
   function play() {
     var logParams = {},
-      frameObj = _frameController.getFrameObject(_currentFrame);
+      frameObj = _frameController.getFrameObject(_currentFrame),
+      skin, html;
 
     if (_isLoading) {
       _isLoading = false;
@@ -200,19 +192,30 @@ RiseVision.Video = (function (gadgets) {
     }
 
     if (frameObj) {
-      frameObj.play();
+      frameObj.postMessage({event: "play"}, _windowController.getFrameOrigin());
     } else {
 
       if (_currentFiles && _currentFiles.length > 0) {
-        if (_mode === "file") {
-          // add frame and create the player
-          _frameController.add(0);
-          _frameController.createFramePlayer(0, _additionalParams, _currentFiles[0], config.SKIN, "player-file.html");
-        }
-        else if (_mode === "folder") {
-          _frameController.add(0);
-          _frameController.createFramePlayer(0, _additionalParams, _currentFiles, config.SKIN, "player-folder.html");
-        }
+
+        RiseVision.Common.RiseCache.isRiseCacheRunning(function (isRunning) {
+          skin = (isRunning) ? "?url=" + encodeURIComponent(_windowController.getBucketPath()) + config.SKIN : config.SKIN;
+
+          if (_mode === "file") {
+            html = (isRunning) ? "//localhost:9494/?url=" +
+            encodeURIComponent(_windowController.getBucketPath()) + "player-file-cache.html" : "player-file.html";
+
+            // add frame and create the player
+            _frameController.add(0);
+            _frameController.createFramePlayer(0, _additionalParams, _currentFiles[0], skin, html, _windowController.getFrameOrigin());
+          }
+          else if (_mode === "folder") {
+            html = (isRunning) ? "//localhost:9494/?url=" +
+            encodeURIComponent(_windowController.getBucketPath()) + "player-folder-cache.html" : "player-folder.html";
+
+            _frameController.add(0);
+            _frameController.createFramePlayer(0, _additionalParams, _currentFiles, skin, html, _windowController.getFrameOrigin());
+          }
+        });
       }
 
     }
@@ -223,7 +226,8 @@ RiseVision.Video = (function (gadgets) {
   }
 
   function playerEnded() {
-    _frameController.remove(_currentFrame, function () {
+    _currentPlaylistIndex = null;
+    _frameController.remove(_currentFrame, _windowController.getFrameOrigin(), function () {
       _done();
     });
   }
@@ -238,9 +242,13 @@ RiseVision.Video = (function (gadgets) {
       frameObj = _frameController.getFrameObject(_currentFrame);
 
       if (frameObj) {
-        frameObj.play();
+        frameObj.postMessage({event: "play"}, _windowController.getFrameOrigin());
       }
     }
+  }
+
+  function playerItemChange(index) {
+    _currentPlaylistIndex = index;
   }
 
   function setAdditionalParams(params, mode) {
@@ -265,7 +273,10 @@ RiseVision.Video = (function (gadgets) {
     // show wait message while Storage initializes
     _message.show("Please wait while your video is downloaded.");
 
-    _frameController = new RiseVision.Common.Video.FrameController();
+    _windowController = new RiseVision.Video.WindowController();
+    _windowController.init();
+
+    _frameController = new RiseVision.Video.FrameController();
 
     if (_mode === "file") {
       isStorageFile = (Object.keys(_additionalParams.storage).length !== 0);
@@ -352,7 +363,8 @@ RiseVision.Video = (function (gadgets) {
     "playerEnded": playerEnded,
     "playerReady": playerReady,
     "playerError": playerError,
+    "playerItemChange": playerItemChange,
     "stop": stop
   };
 
-})(gadgets);
+})(window, gadgets);

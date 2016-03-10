@@ -30,6 +30,14 @@
     "!./src/widget/player-base.js",
     "!./src/widget/player-file.js",
     "!./src/widget/player-folder.js"
+  ],
+    htmlFiles = [
+      "./src/settings.html",
+      "./src/widget.html",
+      "./src/player-file.html",
+      "./src/player-file-cache.html",
+      "./src/player-folder.html",
+      "./src/player-folder-cache.html"
     ];
 
   gulp.task("clean-bower", function(cb){
@@ -65,7 +73,7 @@
   gulp.task("source", ["lint"], function () {
     var isProd = (env === "prod");
 
-    return gulp.src(['./src/settings.html', './src/widget.html', './src/player-file.html', './src/player-folder.html'])
+    return gulp.src(htmlFiles)
       .pipe(gulpif(isProd,
         // Minify for production.
         usemin({
@@ -79,7 +87,7 @@
   });
 
   gulp.task("unminify", function () {
-    return gulp.src(['./src/settings.html', './src/widget.html', './src/player-file.html', './src/player-folder.html'])
+    return gulp.src(htmlFiles)
       .pipe(usemin({
         css: [rename(function (path) {
           path.basename = path.basename.substring(0, path.basename.indexOf(".min"))
@@ -101,7 +109,7 @@
   });
 
   gulp.task("skin", function() {
-    gulp.src("src/components/widget-common/dist/assets/video/RVSkin.xml")
+    gulp.src("src/widget/skin/RVSkin.xml")
       .pipe(gulp.dest("dist/skin"));
   });
 

@@ -57,34 +57,3 @@ describe("getPlaylist()", function() {
   });
 
 });
-
-describe("getPlaybackData()", function() {
-
-  var params, urls, skin;
-
-  beforeEach(function () {
-    params = {width: 1024, height: 768, video: {scaleToFit: true, volume: 50, controls: true, autoplay: true, pause: 10}};
-
-    urls = [
-      "https://www.googleapis.com/storage/v1/b/risemedialibrary-abc123/o/Widgets%2Fvideos%2Ftest1.webm",
-      "https://www.googleapis.com/storage/v1/b/risemedialibrary-abc123/o/Widgets%2Fvideos%2Ftest2.mp4"
-    ];
-
-    skin = "";
-  });
-
-  it("should return an object with correct properties", function () {
-    init(params, urls, skin);
-
-    sinon.stub(player, "getDuration", function () {});
-    sinon.stub(player, "getPosition", function () {});
-    sinon.stub(player, "getCurrentIndex", function () {});
-
-    expect(getPlaybackData()).to.include.keys("duration", "position", "total", "index");
-
-    player.getDuration.restore();
-    player.getPosition.restore();
-    player.getCurrentIndex.restore();
-  });
-
-});

@@ -1,7 +1,7 @@
 (function (window) {
   "use strict";
 
-  window.RiseVision.Common.Video.FrameController = function() {
+  window.RiseVision.Video.FrameController = function() {
     return {
       add: function(index) {
         var frameContainer = this.getFrameContainer(index),
@@ -9,7 +9,7 @@
 
         frameContainer.appendChild(iframe);
       },
-      createFramePlayer: function(index, params, files, skin, src) {
+      createFramePlayer: function(index, params, files, skin, src, origin) {
       },
       getFrameContainer: function(index) {
         return document.getElementById("if_" + index);
@@ -25,13 +25,13 @@
             play: function () {},
             pause: function () {},
             remove: function () {},
-            getPlaybackData: function () {}
+            postMessage: function () {}
           };
         }
 
         return null;
       },
-      remove: function(index, callback) {
+      remove: function(index, origin, callback) {
         var frameContainer = this.getFrameContainer(index),
           frameObj = this.getFrameObject(index);
 
